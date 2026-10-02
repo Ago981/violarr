@@ -2,9 +2,9 @@
 
 ## Purpose
 
-`icvdb-torznab` exposes release information stored in an ICVDB PostgreSQL database through a Torznab-compatible API.
+`icvdb-torznab` exposes release information stored in a local PostgreSQL copy of the ICVDB database through a Torznab-compatible API.
 
-Its primary purpose is to allow applications such as Prowlarr to use ICVDB as an indexer.
+Its primary purpose is to allow applications such as Prowlarr to use ICVDB as an indexer without querying the upstream ICVDB backend for every search.
 
 ## Current architecture
 
@@ -22,7 +22,7 @@ Its primary purpose is to allow applications such as Prowlarr to use ICVDB as an
                          ▼
                   ┌─────────────┐
                   │ PostgreSQL  │
-                  │    ICVDB    │
+                  │ local ICVDB │
                   └──────┬──────┘
                          │
                     query results
@@ -38,6 +38,97 @@ Its primary purpose is to allow applications such as Prowlarr to use ICVDB as an
                          │
                          ▼
                       Prowlarr
+```
+
+The application and PostgreSQL database are deployed together through Docker Compose.
+
+## Docker architecture
+
+The Compose stack contains two services:
+
+```text
+┌────────────────────────────┐
+│ Docker Compose             │
+│                            │
+│  ┌──────────────────────┐  │
+│  │ db                   │  │
+│  │ PostgreSQL 16        │  │
+│  │                      │  │
+│  │ volume: icvdb_data   │  │
+│  └──────────┬───────────┘  │
+│             │              │
+│             │ PostgreSQL   │
+│             ▼              │
+│  ┌──────────────────────┐  │
+│  │ icv-torznab          │  │
+│  │ FastAPI / Uvicorn    │  │
+│  │                      │  │
+│  │ port 8000            │  │
+│  └──────────────────────┘  │
+│                            │
+└────────────────────────────┘
+```
+
+PostgreSQL is not exposed to the host by default.
+
+The Torznab service connects to PostgreSQL using the internal Docker hostname:
+
+```text
+db:5432
+```
+
+## Persistent storage
+
+PostgreSQL data is stored in the named Docker volume:
+
+```text
+icvdb_data
+```
+
+This means restarting or recreating the containers does not normally require restoring the database again.
+
+Removing the volume destroys the local database.
+
+Commands such as:
+
+```bash
+docker compose down -v
+```
+
+should therefore be used only when database deletion is intentional.
+
+## Database snapshot
+
+The ICVDB dataset is not committed to the Git repository.
+
+Database snapshots are distributed separately through GitHub Releases.
+
+Current snapshot:
+
+```text
+Tag: db-2026-08-21
+File: icvdb-2026-08-21.dump
+Format: PostgreSQL custom dump (pg_dump -Fc)
+```
+
+The dump is restored into the local PostgreSQL service with `pg_restore`.
+
+Current installation flow:
+
+```text
+Git repository
+      │
+      ├── application source
+      └── Docker Compose
+               │
+               ▼
+        PostgreSQL container
+               ▲
+               │
+        pg_restore
+               │
+GitHub Release ─┘
+   database dump
 ```
 
 ## API
@@ -112,21 +203,41 @@ Current Torznab categories:
 | 5000 | TV |
 | 5070 | TV / Anime |
 
-## PostgreSQL
+## Database configuration
 
-Database connectivity is configured using:
+The Compose deployment uses:
 
 ```text
-DB_HOST
-DB_PORT
 DB_NAME
 DB_USER
 DB_PASSWORD
 ```
 
-The application currently assumes that the database already exists and has been populated with ICVDB data.
+The FastAPI service receives:
 
-The database should be treated as read-only by this service.
+```text
+DB_HOST=db
+DB_PORT=5432
+DB_NAME
+DB_USER
+DB_PASSWORD
+```
+
+The application also supports overriding all of these values through environment variables.
+
+## Database ownership
+
+ICVDB remains the source of the database schema and release data.
+
+`icvdb-torznab` should treat this schema as external.
+
+The Torznab service should generally perform read-only queries.
+
+The project should not:
+
+- maintain the upstream ICVDB database;
+- change the upstream schema;
+- introduce application-specific schema migrations without an explicit requirement.
 
 ## Identifier normalization
 
@@ -134,7 +245,7 @@ External identifiers may arrive in different formats.
 
 For example, IMDb IDs should be normalized before database comparison.
 
-Normalization logic should remain centralized rather than being duplicated across individual search modes.
+Normalization logic should remain centralized rather than being duplicated across search modes.
 
 ## Torznab XML
 
@@ -150,13 +261,66 @@ The capabilities endpoint:
 
 must always reflect features actually implemented by the service.
 
-## Intended self-hosted model
+A successful `caps` request does not prove that PostgreSQL connectivity works because the capabilities response does not require a database query.
 
-The long-term goal is for a user to be able to clone the project and operate a local ICVDB-backed Torznab indexer without placing load on the live ICVDB backend.
+A real search should therefore also be used when testing deployments.
 
-The preferred database distribution model is based on periodic snapshots rather than having every installation synchronize directly against the upstream service.
+## Request flow
 
-Intended architecture:
+A typical request follows this path:
+
+```text
+Prowlarr
+   │
+   │ GET /api?t=movie&...
+   ▼
+FastAPI
+   │
+   ├── parse query parameters
+   ├── normalize identifiers
+   └── determine search mode
+   │
+   ▼
+PostgreSQL
+   │
+   └── parameterized query
+   │
+   ▼
+ICVDB rows
+   │
+   ├── normalize result data
+   └── map metadata to Torznab
+   │
+   ▼
+Torznab XML
+   │
+   ▼
+Prowlarr
+```
+
+## Current self-hosting model
+
+The current version is fully self-hostable, but database initialization is manual.
+
+The user currently performs:
+
+```text
+1. clone repository
+2. create .env
+3. download database snapshot
+4. start PostgreSQL
+5. restore snapshot with pg_restore
+6. start icvdb-torznab
+7. configure Prowlarr
+```
+
+This design prevents normal indexer searches from placing load on the upstream ICVDB infrastructure.
+
+## Intended snapshot update architecture
+
+A future goal is to automate discovery and installation of new ICVDB snapshots.
+
+The preferred architecture is:
 
 ```text
                  ICVDB PostgreSQL
@@ -182,6 +346,10 @@ Intended architecture:
               ▼                     ▼
        icvdb-torznab         icvdb-torznab
 ```
+
+The upstream database would generate one snapshot per release cycle.
+
+The snapshot itself would then be distributed as a static file, avoiding repeated load on the live backend.
 
 ## Snapshot manifest
 
@@ -212,15 +380,43 @@ Remote version: 2026-10-08
 → record version 2026-10-08
 ```
 
-This avoids repeatedly querying or scraping the upstream ICVDB backend.
+## Future database update concerns
 
-The upstream database only needs to generate one snapshot per release cycle; distribution can then be handled by static file hosting.
+Automatic snapshot replacement must account for:
+
+- integrity verification;
+- failed downloads;
+- failed restores;
+- avoiding partial databases;
+- avoiding unnecessary downtime;
+- rollback;
+- disk space;
+- atomic switching between old and new data where possible.
+
+A future implementation should preferably restore a new snapshot separately and switch over only after successful validation rather than destroying the working database first.
 
 ## Snapshot status
 
-Automatic snapshot retrieval and database restoration are planned but are not currently implemented.
+Manual snapshot download and restoration are already supported and documented.
 
-Current deployments still require an existing PostgreSQL database containing ICVDB data.
+Automatic snapshot discovery and updating are not implemented yet.
+
+## Security boundaries
+
+The Torznab API is the only service exposed by the default Compose configuration.
+
+PostgreSQL remains internal to the Docker network.
+
+Database credentials are provided through environment variables.
+
+The application should never expose:
+
+- database passwords;
+- internal connection strings;
+- sensitive stack traces;
+- secrets.
+
+SQL originating from HTTP parameters must always use psycopg parameter binding.
 
 ## Design goal
 
@@ -232,11 +428,11 @@ Responsibilities should remain clearly separated:
 ICVDB
     → source data
 
-database snapshot distribution
+snapshot publishing
     → distributes source data efficiently
 
 PostgreSQL
-    → local data storage
+    → stores the local snapshot
 
 icvdb-torznab
     → translates database records to Torznab

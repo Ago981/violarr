@@ -2,16 +2,16 @@
 
 ## Project overview
 
-`icvdb-torznab` is a lightweight bridge between an ICVDB PostgreSQL database and Torznab-compatible clients such as Prowlarr.
+`icvdb-torznab` is a lightweight bridge between a local ICVDB PostgreSQL database and Torznab-compatible clients such as Prowlarr.
 
 The application:
 
 1. receives Torznab API requests;
-2. queries an existing ICVDB PostgreSQL database;
+2. queries the local PostgreSQL database containing an ICVDB snapshot;
 3. converts database records into Torznab-compatible XML;
 4. returns the result to the client.
 
-The project does not scrape websites, download torrents, manage media libraries, or populate the ICVDB database.
+The project does not scrape websites, download torrents, manage media libraries, or maintain the upstream ICVDB database.
 
 ## Tech stack
 
@@ -19,7 +19,7 @@ The project does not scrape websites, download torrents, manage media libraries,
 - FastAPI
 - psycopg 3
 - Uvicorn
-- PostgreSQL
+- PostgreSQL 16
 - Docker / Docker Compose
 
 The project is intentionally small. Most application logic currently lives in `app.py`.
@@ -28,15 +28,34 @@ The project is intentionally small. Most application logic currently lives in `a
 
 - `app.py` — API, search logic, database queries and Torznab XML generation
 - `Dockerfile` — application container
-- `docker-compose.yml` — deployment configuration
+- `docker-compose.yml` — PostgreSQL + Torznab service deployment
 - `.env.example` — supported configuration variables
 - `requirements.txt` — Python dependencies
-- `README.md` — user-facing documentation
+- `README.md` — user-facing installation and usage documentation
 - `ARCHITECTURE.md` — architecture and protocol notes
+- `AGENTS.md` — instructions for coding agents working on this repository
 
 ## Configuration
 
-Database configuration must come from environment variables:
+The Docker Compose deployment uses:
+
+```text
+DB_NAME
+DB_USER
+DB_PASSWORD
+```
+
+Inside the Torznab container, database connectivity is configured as:
+
+```text
+DB_HOST=db
+DB_PORT=5432
+DB_NAME=${DB_NAME}
+DB_USER=${DB_USER}
+DB_PASSWORD=${DB_PASSWORD}
+```
+
+`app.py` also supports database configuration through:
 
 ```text
 DB_HOST
@@ -59,23 +78,75 @@ Never commit `.env`.
 
 ## Running the project
 
-Build and start:
+Create the local configuration:
+
+```bash
+cp .env.example .env
+```
+
+Start PostgreSQL:
+
+```bash
+docker compose up -d db
+```
+
+Start or rebuild the complete stack:
 
 ```bash
 docker compose up -d --build
 ```
 
-Logs:
+View logs:
 
 ```bash
 docker compose logs -f
 ```
 
-Stop:
+Stop the stack:
 
 ```bash
 docker compose down
 ```
+
+Do not use `docker compose down -v` unless destroying the local PostgreSQL database is explicitly intended.
+
+## Database snapshot
+
+The repository does not contain the ICVDB database itself.
+
+Database snapshots are distributed separately through GitHub Releases because the dump is too large to store directly in the Git repository.
+
+The currently documented snapshot is:
+
+```text
+Tag: db-2026-08-21
+File: icvdb-2026-08-21.dump
+Format: PostgreSQL custom dump
+```
+
+The dump is restored into the PostgreSQL service managed by `docker-compose.yml`.
+
+The persistent PostgreSQL data is stored in the Docker volume:
+
+```text
+icvdb_data
+```
+
+The database should generally be treated as read-only by the Torznab service.
+
+## Restoring a snapshot
+
+After starting the database service, a snapshot can be restored with:
+
+```bash
+docker compose exec -T db \
+  sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-privileges' \
+  < db/icvdb-2026-08-21.dump
+```
+
+Do not automatically drop, recreate or overwrite an existing user database unless that behavior has been explicitly requested.
+
+Database replacement and snapshot updates must be designed carefully to avoid unnecessary downtime or accidental data loss.
 
 ## Basic verification
 
@@ -92,7 +163,15 @@ Expected:
 - root element `<caps>`
 - advertised capabilities consistent with the implementation
 
-When changing search logic, also test the relevant endpoints.
+The capabilities endpoint alone does not verify PostgreSQL connectivity.
+
+Also perform at least one real search:
+
+```bash
+curl -s 'http://localhost:8000/api?t=search&q=avatar'
+```
+
+When changing movie or TV search logic, test the relevant endpoint as well.
 
 Examples:
 
@@ -131,17 +210,19 @@ When changing the API:
 - keep `/api?t=caps` synchronized with actual implemented features;
 - do not advertise capabilities that are not implemented.
 
-## Database
+## Database rules
 
-The application currently expects an already populated ICVDB PostgreSQL database.
-
-Treat the ICVDB database as an external dependency.
+Treat the ICVDB schema as an external data model.
 
 Prefer read-only SQL.
 
-Do not alter the upstream ICVDB schema or add migrations unless explicitly requested.
+Do not modify the ICVDB schema or introduce application-specific migrations unless explicitly requested.
 
-All HTTP-provided values used in SQL must use psycopg parameter binding. Never construct SQL by concatenating untrusted values.
+All HTTP-provided values used in SQL must use psycopg parameter binding.
+
+Never construct SQL by concatenating untrusted request values.
+
+Keep ICVDB-specific schema assumptions easy to locate and understand.
 
 ## XML generation
 
@@ -164,6 +245,8 @@ Do not expose:
 
 Secrets must come from configuration/environment variables.
 
+PostgreSQL should remain internal to the Docker Compose network unless there is a concrete reason to expose it.
+
 ## Design principles
 
 Keep the project simple.
@@ -179,7 +262,7 @@ Prefer:
 
 Avoid unnecessary abstractions or frameworks.
 
-This application should remain a thin adapter:
+The application should remain a thin adapter:
 
 ```text
 Torznab request
@@ -205,7 +288,8 @@ Appropriate features include:
 - tests;
 - health checks;
 - Docker/deployment improvements;
-- automated database snapshot retrieval.
+- safer snapshot restoration;
+- automated database snapshot retrieval and updating.
 
 Out of scope unless explicitly requested:
 
@@ -217,9 +301,25 @@ Out of scope unless explicitly requested:
 
 ## Database snapshot distribution
 
-A future goal is to make the project fully self-hostable without requiring every user to independently obtain an ICVDB database dump.
+The current project already supports self-hosting using a manually downloaded database snapshot.
 
-The intended model is:
+Current flow:
+
+```text
+GitHub Release
+      ↓
+download PostgreSQL dump
+      ↓
+restore into local PostgreSQL
+      ↓
+icvdb-torznab
+      ↓
+Prowlarr
+```
+
+A future goal is automated snapshot discovery and updating.
+
+The intended future model is:
 
 ```text
 ICVDB database
@@ -233,7 +333,7 @@ static storage
         self-hosted instances
 ```
 
-A possible `latest.json` format:
+A possible manifest format:
 
 ```json
 {
@@ -245,9 +345,9 @@ A possible `latest.json` format:
 
 A self-hosted instance could periodically check the manifest and download a new dump only when `version` changes.
 
-This feature is NOT implemented yet.
+Automatic snapshot discovery and updating are not implemented yet.
 
-Do not assume that a public dump URL or update service exists unless it has actually been added to the project.
+Do not assume that a stable manifest URL exists unless it has actually been added to the project.
 
 ## Documentation
 
@@ -255,14 +355,20 @@ When changing user-visible behavior, update `README.md`.
 
 When changing architecture, database assumptions, Torznab mappings or snapshot/update behavior, update `ARCHITECTURE.md`.
 
+Keep examples generic.
+
+Never put local credentials, private IP addresses or machine-specific configuration into documentation.
+
 ## Before finishing a change
 
 Verify that:
 
-1. the application starts;
-2. the Docker image builds;
-3. PostgreSQL connectivity still works;
+1. the Docker image builds;
+2. PostgreSQL starts successfully;
+3. the Torznab service starts successfully;
 4. `/api?t=caps` returns valid XML;
-5. affected search endpoints behave correctly;
-6. no credentials or local configuration were committed;
-7. documentation reflects user-visible changes.
+5. at least one real search reaches PostgreSQL successfully;
+6. affected search endpoints behave correctly;
+7. no credentials or local-only configuration were committed;
+8. database dumps were not accidentally committed;
+9. documentation reflects user-visible changes.
