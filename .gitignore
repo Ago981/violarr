@@ -12,3 +12,6 @@ venv/
 .idea/
 .vscode/
 .DS_Store
+
+# Local database snapshots
+db/*.dump
