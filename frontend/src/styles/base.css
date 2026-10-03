@@ -1,0 +1,39 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+a {
+  color: var(--primary);
+  text-underline-offset: 3px;
+}
+a:hover {
+  color: var(--primary-hover);
+}
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  transform: translateY(-150%);
+  padding: 8px 12px;
+  background: var(--surface);
+  border-radius: 6px;
+}
+.skip-link:focus {
+  transform: none;
+}
