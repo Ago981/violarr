@@ -214,3 +214,77 @@ def test_absolute_http_prowlarr_urls_are_valid(tmp_path):
 
     assert saved["prowlarr"]["url"] == "http://prowlarr:9696"
     assert saved["prowlarr"]["indexer_url"] == "https://indexer.example/api?t=caps"
+
+
+def test_public_update_preserves_replaces_and_clears_persisted_api_key(tmp_path):
+    path = tmp_path / "settings.json"
+    store = SettingsStore(path=path, environ={})
+    persisted = store.load()
+    persisted["prowlarr"]["api_key"] = "stored-secret"
+    store.save(persisted)
+
+    public = store.public()
+    public["prowlarr"]["url"] = "http://prowlarr:9696"
+    store.update_public(public)
+    assert store.load_persisted()["prowlarr"]["api_key"] == "stored-secret"
+
+    public["prowlarr"]["api_key"] = "replacement-secret"
+    store.update_public(public)
+    assert store.load_persisted()["prowlarr"]["api_key"] == "replacement-secret"
+
+    public["prowlarr"]["api_key"] = ""
+    store.update_public(public)
+    assert store.load_persisted()["prowlarr"]["api_key"] == ""
+
+
+def test_public_update_never_persists_runtime_api_key(tmp_path):
+    path = tmp_path / "settings.json"
+    store = SettingsStore(
+        path=path,
+        environ={"PROWLARR_API_KEY": "runtime-secret"},
+    )
+
+    public = store.public()
+    public["database_update"]["enabled"] = False
+    store.update_public(public)
+
+    persisted = path.read_text(encoding="utf-8")
+    assert "runtime-secret" not in persisted
+    assert store.load_persisted()["prowlarr"]["api_key"] == ""
+
+
+def test_public_round_trip_never_persists_non_secret_runtime_overrides(tmp_path):
+    store = SettingsStore(
+        path=tmp_path / "settings.json",
+        environ={
+            "DB_AUTO_UPDATE": "false",
+            "DB_UPDATE_INTERVAL": "3600",
+            "ICVDB_RESULT_PRESET": "italian_only",
+            "ICVDB_PROWLARR_URL": "http://runtime-prowlarr:9696",
+            "PROWLARR_INDEXER_URL": "http://runtime-indexer:8000/api",
+        },
+    )
+
+    store.update_public(store.public())
+    persisted = store.load_persisted()
+
+    assert persisted["database_update"] == {
+        "enabled": True,
+        "interval_seconds": 86400,
+    }
+    assert persisted["result_processing"]["preset"] == "unfiltered"
+    assert persisted["prowlarr"]["url"] == ""
+    assert persisted["prowlarr"]["indexer_url"] == ""
+
+
+def test_public_update_rejects_unknown_fields_without_overwrite(tmp_path):
+    path = tmp_path / "settings.json"
+    store = SettingsStore(path=path, environ={})
+    original = store.load_persisted()
+    public = store.public()
+    public["prowlarr"]["unexpected"] = True
+
+    with pytest.raises(SettingsError, match="unknown"):
+        store.update_public(public)
+
+    assert store.load_persisted() == original
