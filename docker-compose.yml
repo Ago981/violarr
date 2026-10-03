@@ -1,6 +1,6 @@
 services:
   icvdb-torznab:
-    build: .
+    image: ghcr.io/xbit18/icvdb-torznab:latest
     container_name: icvdb-torznab
     restart: unless-stopped
 
