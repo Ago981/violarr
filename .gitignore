@@ -15,3 +15,7 @@ venv/
 
 # Local database snapshots
 db/*.dump
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/*.tsbuildinfo
