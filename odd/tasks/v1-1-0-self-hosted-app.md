@@ -70,14 +70,16 @@ The v1.0 service is operationally safe but backend-only. Users cannot inspect st
   - Delivery note: updater, Prowlarr, and WebAPI units are 452, 424, and 440 authored lines respectively; each keeps production behavior with its tests instead of splitting code from proof.
   - RDD outcome: `disabled/unmanaged` (global mode is off).
 
-- [ ] **V110-03 — Build the Vue WebUI**
+- [x] **V110-03 — Build the Vue WebUI**
   - Route: delegated; new multi-file Vue application and responsive design system.
   - Add dashboard, general/update/result-processing/Prowlarr settings, preset UX, bounded custom rule builder, loading/error states, and accessible responsive light/dark navigation.
   - Use violet as the product primary and orange only for Prowlarr context; derive patterns from Downtify without copying code or branding.
   - Acceptance: dashboard shows service/database/result/Prowlarr state; settings persist; secrets never reappear; core workflows work on mobile and desktop.
   - Checks: frontend type/build checks plus focused component/store tests for critical configuration flows.
-  - Commit: pending.
-  - RDD outcome: pending.
+  - Evidence: formatting, 20 behavior tests, TypeScript checking, production build, and production/development audits passed; bundled CSS stayed byte-identical after modularization.
+  - Commits: `c4960c2`, `2384806`, `5e56c91`, `a300748`, `7806d56`, `65d3f2d`, `7f4a018`, `4334c76`, `eaedb9e`, and `48c54db`.
+  - Delivery note: 2,567 authored lines excluding the generated lockfile, split by API foundation, state hardening, design system, dashboard, settings, result processing, Prowlarr, and application shell. The 493-line responsive-style unit preserves one cohesive visual contract.
+  - RDD outcome: `disabled/unmanaged` (global mode is off).
 
 - [ ] **V110-04 — Integrate the single-container runtime**
   - Route: delegated; Docker build, FastAPI static fallback, startup behavior, and upgrade verification cross several files.
@@ -110,10 +112,10 @@ The v1.0 service is operationally safe but backend-only. Users cannot inspect st
 
 - Exploration completed against the repository, Prowlarr OpenAPI/controller sources, Downtify, Vue/Vite, FastAPI static serving, and VitePress deployment documentation.
 - Current branch: `feature/v1.1.0`.
-- Current task: `V110-03`.
-- Running authored-line count: 2,626 committed across seven reviewable work units.
+- Current task: `V110-04`.
+- Running authored-line count: 5,193 committed, excluding generated lockfiles.
 - Reviewed boundary: branch point `d022024`.
 
 ## Next step
 
-Implement `V110-03`: build the responsive Vue WebUI and shared product design system against the tested `/webapi` contracts.
+Implement `V110-04`: build and serve the SPA from the existing single-container runtime while preserving `/data`, Torznab, and snapshot-update behavior.
