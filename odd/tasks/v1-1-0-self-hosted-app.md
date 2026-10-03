@@ -87,8 +87,10 @@ The v1.0 service is operationally safe but backend-only. Users cannot inspect st
   - Serve the SPA at `/` without shadowing `/api` or `/webapi`; keep `/data`, PostgreSQL binding, bootstrap, updater, and shutdown behavior unchanged.
   - Acceptance: fresh install exposes WebUI and Torznab; a v1.0 volume upgrades without losing PostgreSQL or snapshot state.
   - Checks: frontend/backend builds, Docker image build, caps XML, real search, affected movie/TV searches, persistence restart, and v1.0-volume upgrade scenario where feasible.
-  - Commit: pending.
-  - RDD outcome: pending.
+  - Status: implementation complete; Docker-dependent acceptance remains blocked because Docker CLI is unavailable in this environment.
+  - Evidence: 22 focused and 87 full Python tests passed; static verification confirmed PostgreSQL 16, `/data`, copied modules, route ordering, and entrypoint invariants. Image build, container smoke, real search, restart, and v1.0-volume upgrade remain pending.
+  - Commits: `183fd3c` (safe FastAPI SPA hosting) and `7168a29` (multi-stage single-container image).
+  - RDD outcome: `disabled/unmanaged` (global mode is off).
 
 - [ ] **V110-05 — Publish cohesive product documentation**
   - Route: delegated; VitePress structure, shared visual tokens, workflows, README, and architecture docs span many files.
@@ -112,10 +114,10 @@ The v1.0 service is operationally safe but backend-only. Users cannot inspect st
 
 - Exploration completed against the repository, Prowlarr OpenAPI/controller sources, Downtify, Vue/Vite, FastAPI static serving, and VitePress deployment documentation.
 - Current branch: `feature/v1.1.0`.
-- Current task: `V110-04`.
-- Running authored-line count: 5,193 committed, excluding generated lockfiles.
+- Current task: `V110-05`; V110-04 awaits Docker-capable verification.
+- Running authored-line count: 5,455 committed, excluding generated lockfiles.
 - Reviewed boundary: branch point `d022024`.
 
 ## Next step
 
-Implement `V110-04`: build and serve the SPA from the existing single-container runtime while preserving `/data`, Torznab, and snapshot-update behavior.
+Implement `V110-05`: publish the VitePress documentation site and update user/architecture documentation. Revisit V110-04 container checks during final verification on a Docker-capable host.
