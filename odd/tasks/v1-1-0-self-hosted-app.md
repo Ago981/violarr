@@ -81,15 +81,14 @@ The v1.0 service is operationally safe but backend-only. Users cannot inspect st
   - Delivery note: 2,567 authored lines excluding the generated lockfile, split by API foundation, state hardening, design system, dashboard, settings, result processing, Prowlarr, and application shell. The 493-line responsive-style unit preserves one cohesive visual contract.
   - RDD outcome: `disabled/unmanaged` (global mode is off).
 
-- [ ] **V110-04 — Integrate the single-container runtime**
+- [x] **V110-04 — Integrate the single-container runtime**
   - Route: delegated; Docker build, FastAPI static fallback, startup behavior, and upgrade verification cross several files.
   - Add a Node build stage and copy only production frontend assets into the PostgreSQL/Python runtime.
   - Serve the SPA at `/` without shadowing `/api` or `/webapi`; keep `/data`, PostgreSQL binding, bootstrap, updater, and shutdown behavior unchanged.
   - Acceptance: fresh install exposes WebUI and Torznab; a v1.0 volume upgrades without losing PostgreSQL or snapshot state.
   - Checks: frontend/backend builds, Docker image build, caps XML, real search, affected movie/TV searches, persistence restart, and v1.0-volume upgrade scenario where feasible.
-  - Status: implementation complete; Docker-dependent acceptance remains blocked because Docker CLI is unavailable in this environment.
-  - Evidence: 22 focused and 87 full Python tests passed; static verification confirmed PostgreSQL 16, `/data`, copied modules, route ordering, and entrypoint invariants. Image build, container smoke, real search, restart, and v1.0-volume upgrade remain pending.
-  - Commits: `183fd3c` (safe FastAPI SPA hosting) and `7168a29` (multi-stage single-container image).
+  - Evidence: image build and metadata passed with PostgreSQL 16.15, app 1.1.0, only `/data`, and only port 8000. Fresh bootstrap installed `db-2026-10-04` with 1,460,840 torrents; WebUI, WebAPI, caps/search/movie/tvsearch, restart, and settings persistence passed. Disposable v1.0 → v1.1 upgrade preserved the exact snapshot and torrent count.
+  - Commits: `183fd3c` (safe FastAPI SPA hosting), `7168a29` (multi-stage image), `bf92a64` (single-volume Debian/PGDG runtime), and `73472d8` (UTF-8 cluster initialization).
   - RDD outcome: `disabled/unmanaged` (global mode is off).
 
 - [x] **V110-05 — Publish cohesive product documentation**
@@ -104,22 +103,23 @@ The v1.0 service is operationally safe but backend-only. Users cannot inspect st
   - Risk: VitePress 1.6.4 currently resolves development-only Vite/esbuild advisories with no compatible automatic fix; static output and production dependencies are unaffected, and docs development remains localhost-only.
   - RDD outcome: `disabled/unmanaged` (global mode is off).
 
-- [ ] **V110-06 — Final regression and release-readiness verification**
+- [x] **V110-06 — Final regression and release-readiness verification**
   - Route: delegated verification; full builds and runtime checks exceed the parent execution budget.
   - Run all backend/frontend/docs tests and builds, container smoke tests, real PostgreSQL search, secret/dump checks, and review every acceptance criterion.
   - Record all failed, unavailable, skipped, or environment-dependent checks honestly.
   - Acceptance: no known regression in Torznab or snapshot updates; remaining release risks are explicit.
-  - Commit: pending if verification requires tracked fixes; otherwise N/A.
-  - RDD outcome: pending.
+  - Evidence: 93 Python tests, 20 frontend tests, frontend format/type/build/audits, docs format/build/production audit, Docker fresh/upgrade smoke, tracked-artifact scan, and secret scan passed. No prohibited generated or sensitive artifacts are tracked.
+  - Commit: N/A; verification fixes are recorded in the V110-04 commits. Local tool indexes are ignored by `73e14f1`.
+  - RDD outcome: `disabled/unmanaged` (global mode is off).
 
 ## Progress and evidence
 
 - Exploration completed against the repository, Prowlarr OpenAPI/controller sources, Downtify, Vue/Vite, FastAPI static serving, and VitePress deployment documentation.
 - Current branch: `feature/v1.1.0`.
-- Current task: `V110-06`; Docker CLI is now available, so V110-04 runtime verification resumes as part of final checks.
-- Running authored-line count: 7,381 committed, excluding generated lockfiles.
+- Current task: complete.
+- Running authored-line count: approximately 7,500 committed, excluding generated lockfiles.
 - Reviewed boundary: branch point `d022024`.
 
 ## Next step
 
-Run V110-06 release-readiness verification, including image build, fresh-container smoke, persistence restart, real PostgreSQL searches, and a disposable v1.0-volume upgrade where the published image is available.
+Maintainer may now inspect the local image and feature branch, then decide whether to push branches, open chained pull requests, and publish v1.1.0. No release was created automatically.
