@@ -4,6 +4,7 @@ from fastapi import FastAPI, Query, Response
 import psycopg
 from result_processor import process_results
 from settings import SettingsStore
+from webapi import create_webapi_router
 from xml.etree.ElementTree import (
     Element,
     SubElement,
@@ -11,8 +12,10 @@ from xml.etree.ElementTree import (
     register_namespace,
 )
 
-app = FastAPI()
-install_snapshot_updater(app)
+SETTINGS_STORE = SettingsStore()
+app = FastAPI(version="1.1.0")
+app.state.settings_store = SETTINGS_STORE
+install_snapshot_updater(app, SETTINGS_STORE)
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "host.docker.internal"),
@@ -26,12 +29,21 @@ TORZNAB_NS = "http://torznab.com/schemas/2015/feed"
 
 register_namespace("torznab", TORZNAB_NS)
 
-SETTINGS_STORE = SettingsStore()
 RESULT_CANDIDATE_WINDOW = 1000
 
 
 def get_conn():
     return psycopg.connect(**DB_CONFIG)
+
+
+def database_probe() -> bool:
+    with get_conn() as connection:
+        connection.execute("SELECT 1").fetchone()
+    return True
+
+
+app.state.database_probe = database_probe
+app.include_router(create_webapi_router())
 
 
 def normalize_imdb(imdbid: str | None):
