@@ -1,0 +1,137 @@
+# API reference
+
+The service exposes three HTTP surfaces on port `8000`.
+
+| Prefix    | Purpose                            | Authentication                               |
+| --------- | ---------------------------------- | -------------------------------------------- |
+| `/`       | WebUI static application           | None                                         |
+| `/api`    | Torznab XML endpoint               | None; `apikey` is accepted but not validated |
+| `/webapi` | Same-origin JSON configuration API | None                                         |
+
+## WebAPI endpoints
+
+| Method | Path                        | `200` response                                | Handled error statuses |
+| ------ | --------------------------- | --------------------------------------------- | ---------------------- |
+| `GET`  | `/webapi/status`            | Aggregate service status                      | —                      |
+| `GET`  | `/webapi/settings`          | Public schema-v1 settings                     | —                      |
+| `PUT`  | `/webapi/settings`          | Validated effective public settings           | `422` invalid body     |
+| `GET`  | `/webapi/result-processing` | Effective preset and custom rules             | —                      |
+| `PUT`  | `/webapi/result-processing` | Validated effective preset and rules          | `422` invalid body     |
+| `GET`  | `/webapi/prowlarr/status`   | Live status, including remote failure details | Always `200`           |
+| `POST` | `/webapi/prowlarr/test`     | `{ "connected": true, "error": null }`        | `400`, `502`           |
+| `POST` | `/webapi/prowlarr/indexer`  | Creation or existing-indexer result           | `400`, `502`           |
+
+During the brief snapshot database switch, middleware can return HTTP `503` with
+`Retry-After: 5` for any route before its normal handler runs.
+
+## `GET /webapi/status`
+
+This endpoint probes PostgreSQL but does not contact Prowlarr. Its Prowlarr
+section contains the latest in-process summary from a focused Prowlarr
+operation, or null state before one has run.
+
+| Field                                 | Type            | Meaning                                              |
+| ------------------------------------- | --------------- | ---------------------------------------------------- |
+| `api_version`                         | integer         | WebAPI schema version; currently `1`                 |
+| `application_version`                 | string          | FastAPI application version                          |
+| `database.connected`                  | boolean         | Result of the current database probe                 |
+| `updater.installed_version`           | string or null  | Installed snapshot tag                               |
+| `updater.latest_version`              | string or null  | Last discovered remote tag                           |
+| `updater.enabled`                     | boolean         | Effective automatic-update state                     |
+| `updater.updating`                    | boolean         | Whether an update is running                         |
+| `updater.maintenance`                 | boolean         | Whether the database switch is in progress           |
+| `updater.last_check`                  | string or null  | ISO-8601 timestamp                                   |
+| `updater.next_check`                  | string or null  | ISO-8601 timestamp; null when disabled               |
+| `updater.last_error`                  | string or null  | Last updater error                                   |
+| `result_processing.preset`            | string          | Effective preset                                     |
+| `result_processing.custom_rule_count` | integer         | Number of configured rules, including disabled rules |
+| `prowlarr.configured`                 | boolean         | URL and API key are both effective                   |
+| `prowlarr.connected`                  | boolean or null | Cached connection result                             |
+| `prowlarr.indexer_installed`          | boolean or null | Cached installation result                           |
+| `prowlarr.error`                      | string or null  | Cached sanitized error                               |
+
+## Settings
+
+`GET /webapi/settings` and a successful `PUT /webapi/settings` return:
+
+| Field                              | Type                                                           |
+| ---------------------------------- | -------------------------------------------------------------- |
+| `schema_version`                   | integer `1`                                                    |
+| `database_update.enabled`          | boolean                                                        |
+| `database_update.interval_seconds` | integer, 60–604800                                             |
+| `result_processing.preset`         | `unfiltered`, `italian_preferred`, `italian_only`, or `custom` |
+| `result_processing.custom_rules`   | array                                                          |
+| `prowlarr.url`                     | string                                                         |
+| `prowlarr.indexer_url`             | string                                                         |
+| `prowlarr.api_key_configured`      | boolean                                                        |
+
+`PUT` accepts an optional write-only `prowlarr.api_key`: omission preserves the
+persisted key, a non-empty string replaces it, and an empty string clears it.
+Validation or unknown fields return HTTP `422` with `{ "detail": "..." }`. A
+successful full-settings update also reconfigures the updater and clears cached
+Prowlarr status.
+
+## Result processing
+
+Both result-processing routes use this body:
+
+```json
+{
+  "preset": "italian_preferred",
+  "custom_rules": []
+}
+```
+
+`GET` returns the effective object. `PUT` returns the validated effective
+object; an invalid preset, rule, field, operator, action, value, or unknown
+field returns HTTP `422` with a detail string.
+
+## Prowlarr status
+
+`GET /webapi/prowlarr/status` returns HTTP `200` with all four fields:
+
+| Field               | Type            | Behavior                                                                               |
+| ------------------- | --------------- | -------------------------------------------------------------------------------------- |
+| `configured`        | boolean         | False unless URL and API key are effective                                             |
+| `connected`         | boolean or null | Null when unconfigured; otherwise the live connection result                           |
+| `indexer_installed` | boolean or null | Null when unconfigured or status setup fails; otherwise the live endpoint match result |
+| `error`             | string or null  | Sanitized specific failure or null                                                     |
+
+Normal remote failures remain status data rather than HTTP errors. For example:
+
+```json
+{
+  "configured": true,
+  "connected": false,
+  "indexer_installed": false,
+  "error": "Unable to connect to Prowlarr"
+}
+```
+
+Specific safe errors include connection, remote HTTP status, response-size,
+invalid-JSON, and invalid-schema failures. If an error contains the configured
+secret or traceback text, it is replaced with `Prowlarr request failed`.
+
+## Prowlarr commands
+
+| Route                           | Success body                                                                          | `400`                                         | `502`                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
+| `POST /webapi/prowlarr/test`    | `{ "connected": true, "error": null }`                                                | Prowlarr URL or API key missing               | Remote/client failure; `{ "detail": "Prowlarr request failed" }`                 |
+| `POST /webapi/prowlarr/indexer` | `{ "created": boolean, "already_installed": boolean, "indexer_id": integer or null }` | Prowlarr URL, API key, or Indexer URL missing | Schema, test, list, or create failure; `{ "detail": "Prowlarr request failed" }` |
+
+An already-installed indexer returns `created: false` and
+`already_installed: true`. A newly created indexer returns the inverse. The ID
+is null when Prowlarr does not provide an integer ID.
+
+## Secret behavior
+
+Normal JSON reads never include the saved or environment-provided API key.
+`GET /webapi/settings` exposes only `api_key_configured`; status responses
+expose no key field. Prowlarr command errors always use the stable generic
+detail. Prowlarr status errors may retain a sanitized specific reason, but any
+reason containing the configured key or traceback text is replaced. See the
+[configuration schema](./configuration-schema) for replacement and clear rules.
+
+## Torznab
+
+See [Torznab capabilities](./torznab-capabilities) for query and XML details.
