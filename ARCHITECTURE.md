@@ -1,326 +1,214 @@
-# Architettura
+# Architecture
 
-## Panoramica
+ICVDB Torznab is a thin, single-container adapter between an ICVDB PostgreSQL
+snapshot and Torznab-compatible clients. v1.1 adds a WebUI and persistent
+configuration without changing the v1.0 runtime boundary.
 
-`icvdb-torznab` è un indexer compatibile con Torznab basato su ICVDB.
-
-Il progetto viene distribuito come un singolo container Docker che contiene:
-
-```text
-┌───────────────────────────────────────┐
-│ container icvdb-torznab              │
-│                                       │
-│  PostgreSQL 16                        │
-│  FastAPI / Uvicorn                    │
-│  Snapshot updater                     │
-│                                       │
-│  /data                                │
-│  ├── postgres/                        │
-│  └── state/snapshot-version           │
-└───────────────────────────────────────┘
-```
-
-All'host viene esposta soltanto l'API HTTP.
-
-PostgreSQL ascolta su `127.0.0.1:5432` all'interno del container e non viene esposto esternamente.
-
-## Componenti
-
-### Applicazione FastAPI
-
-`app.py` implementa l'API compatibile con Torznab.
-
-Si collega a PostgreSQL tramite:
+## Runtime topology
 
 ```text
-127.0.0.1:5432
+┌──────────────────────────────────────────────────────────┐
+│ icvdb-torznab container                                  │
+│                                                          │
+│  :8000 FastAPI                                           │
+│    ├── /         Vue WebUI                               │
+│    ├── /webapi   settings, status, updater, Prowlarr     │
+│    └── /api      Torznab XML                             │
+│                     │                                    │
+│  PostgreSQL 16 ◄────┘  127.0.0.1:5432 only              │
+│                                                          │
+│  /data                                                   │
+│    ├── postgres/                                         │
+│    └── state/{settings.json,snapshot-version}            │
+└──────────────────────────────────────────────────────────┘
 ```
 
-I parametri di connessione al database sono valori interni forniti dal container.
+Only port `8000` is published. PostgreSQL is not exposed, and the application
+does not use a Docker socket, Redis, a separate settings database, or a second
+runtime container.
 
-L'applicazione FastAPI installa inoltre gli hook di lifecycle dello snapshot updater.
+## Modules
 
-### PostgreSQL
+| Module | Responsibility |
+| --- | --- |
+| `app.py` | FastAPI lifecycle, Torznab queries/XML, result-processing integration, static WebUI serving |
+| `settings.py` | Schema-v1 validation, atomic persistence, environment precedence, public secret masking |
+| `result_processor.py` | Italian presets and bounded custom score/exclusion rules |
+| `webapi.py` | Same-origin JSON status, settings, processing, and Prowlarr endpoints |
+| `prowlarr.py` | `X-Api-Key` client, Generic Torznab schema derivation, test/create/idempotency |
+| `snapshot_updater.py` | Snapshot discovery, validation, candidate restore, switch, rollback, updater state |
+| `frontend/` | Vue 3 WebUI source and shared product design tokens |
+| `entrypoint.sh` | PostgreSQL bootstrap, first snapshot restore, Uvicorn lifecycle, clean shutdown |
 
-Il container è basato su PostgreSQL 16.
+## Image build and startup
 
-I dati persistenti di PostgreSQL vengono salvati in:
+The Dockerfile has a Node build stage for `frontend/`. Only generated production
+assets are copied into the PostgreSQL/Python runtime at `/app/frontend-dist`.
+FastAPI registers `/api` and `/webapi` before low-priority static and SPA fallback
+routes. Reserved API, OpenAPI, docs, and ReDoc paths cannot fall through to the
+SPA.
+
+Startup preserves the v1.0 sequence:
 
 ```text
-/data/postgres
+initialize or reuse /data/postgres
+        ↓
+start PostgreSQL and wait for readiness
+        ↓
+create application database when needed
+        ↓
+bootstrap latest snapshot when no installed state exists
+        ↓
+start FastAPI and the periodic updater
 ```
 
-Al primo avvio, `entrypoint.sh` inizializza il cluster PostgreSQL e crea il database applicativo.
+The runtime integration is implemented, but image build, container smoke,
+persistence restart, and real v1.0-volume upgrade verification remain pending on
+a Docker-capable host.
 
-Agli avvii successivi viene riutilizzato il cluster PostgreSQL già presente nel volume Docker.
+## Request flows
 
-### Entrypoint
-
-`entrypoint.sh` gestisce il ciclo di vita del container.
-
-Flusso di avvio:
+### Torznab
 
 ```text
-avvio container
-      ↓
-inizializzazione PostgreSQL se necessaria
-      ↓
-avvio PostgreSQL
-      ↓
-attesa disponibilità PostgreSQL
-      ↓
-creazione database applicativo se necessario
-      ↓
-snapshot già installato?
-   ┌──┴──┐
-   no   sì
-   ↓      ↓
-bootstrap latest snapshot
-   ↓
-avvio FastAPI
+/api query parameters
+        ↓
+normalized values and parameterized psycopg SQL
+        ↓
+optional result processing
+        ↓
+ElementTree Torznab RSS serialization
 ```
 
-L'entrypoint gestisce anche lo shutdown del container e arresta in modo pulito sia Uvicorn sia PostgreSQL.
+`t=search`, `t=movie`, and `t=tvsearch` retain the v1.0 parameters, categories,
+limits, offset behavior, and XML item shape. The default `unfiltered` preset
+passes `limit` and `offset` directly to the database.
 
-`tini` viene utilizzato come PID 1 per il corretto inoltro dei segnali e la gestione dei processi figli.
-
-## Sorgente degli snapshot
-
-Gli snapshot del database vengono distribuiti separatamente tramite:
+### WebUI and WebAPI
 
 ```text
-https://github.com/xbit18/icvdb-snapshots
+browser → Vue static assets → same-origin /webapi
+                              ├── settings store
+                              ├── updater state/reconfigure
+                              ├── database probe
+                              └── Prowlarr client
 ```
 
-L'updater interroga:
+The aggregate status endpoint does not make a live Prowlarr request. Live status
+is fetched by the focused Prowlarr status endpoint and retained only as an
+in-process summary.
+
+### Prowlarr
+
+The client sends `X-Api-Key` to Prowlarr. It reads
+`/api/v1/indexer/schema`, selects the Generic Torznab `Torznab` implementation,
+deep-clones the schema resource, names it `ICVDB Torznab`, and fills `baseUrl`,
+`apiPath`, and the blank Torznab `apiKey` field. Add checks existing Torznab
+resources by normalized origin/path before asking Prowlarr to test and create the
+resource, making repeated requests idempotent.
+
+The focused Prowlarr status route reports remote failures in an HTTP `200` status
+payload. It preserves secret-safe specific client errors, but replaces any error
+containing the configured key or traceback text with `Prowlarr request failed`.
+The POST test/create routes return that stable detail with HTTP `502` for remote
+failures. API keys and tracebacks are not returned.
+
+## Settings model
+
+Settings use schema version 1 and default to:
+
+- automatic updates enabled every 86400 seconds;
+- `unfiltered` result processing with no custom rules;
+- empty Prowlarr URL, Indexer URL, and API key.
+
+Effective precedence is:
 
 ```text
-https://api.github.com/repos/xbit18/icvdb-snapshots/releases/latest
+built-in defaults < /data/state/settings.json < runtime environment
 ```
 
-Ogni release contiene un dump PostgreSQL in formato custom:
+`SettingsStore.save` writes a temporary file in the state directory, flushes and
+fsyncs it, then replaces `settings.json` atomically. WebUI updates begin from
+persisted values so runtime overrides are not accidentally copied to disk.
 
-```text
-icvdb-YYYY-MM-DD.dump
-```
+Public settings replace `api_key` with `api_key_configured`. Omitting the key on
+update preserves the stored value, a non-empty value replaces it, and an empty
+value clears it. An environment-provided key is effective but never persisted.
 
-GitHub espone il digest SHA256 dell'asset tramite la Releases API.
+Supported settings overrides are `DB_AUTO_UPDATE`, `DB_UPDATE_INTERVAL`,
+`ICVDB_RESULT_PRESET`, `ICVDB_PROWLARR_URL`, `ICVDB_PROWLARR_API_KEY`,
+`PROWLARR_API_KEY`, and `PROWLARR_INDEXER_URL`. `PROWLARR_API_KEY` wins when both
+API-key aliases are set.
 
-La versione installata viene salvata in:
+## Result pipeline
 
-```text
-/data/state/snapshot-version
-```
+Rows have the processing fields `title`, `size`, `seeders`, and `provider`.
 
-Esempio:
+- `unfiltered` preserves database order.
+- `italian_only` keeps exact title tokens `ITA`, `ITALIAN`, or `ITALIANO`.
+- `italian_preferred` scores those explicit markers at 100 and exact `MULTI` or
+  `DUAL` tokens at 25.
+- `custom` removes rows matching enabled exclusion rules, then stably ranks the
+  remainder by summed score rules.
 
-```text
-db-2026-10-04
-```
+Rules are structured and bounded: no regular expressions or scripts, at most
+100 rules, text values up to 512 characters, finite numbers, and score magnitude
+up to 1000. Text operators compare Unicode case-folded values; null text matches
+only `not_contains`. Numeric operators require finite non-boolean values on both
+sides, so null and non-finite row values never match.
 
-## Bootstrap iniziale
+Processed pagination operates on fixed, non-overlapping 1000-row database
+windows. Ranking is local to each window, equal scores preserve original order,
+and filtered pages are not backfilled from later windows.
 
-Se il file con la versione dello snapshot non esiste, il container esegue il bootstrap iniziale prima di avviare FastAPI.
+This pipeline affects only ICVDB's XML response. It cannot guarantee downstream
+Radarr/Sonarr selection. Hard filters hide results from Prowlarr entirely.
 
-L'updater esegue:
+## Snapshot invariants
 
-```text
-recupero metadata latest release
-      ↓
-download asset .dump
-      ↓
-verifica SHA256
-      ↓
-pg_restore --list
-      ↓
-restore database candidato
-      ↓
-validazione database candidato
-      ↓
-switch del database
-      ↓
-scrittura snapshot-version
-```
+Snapshot metadata comes from the configured GitHub latest-release endpoint. The
+updater selects a `.dump` asset and requires its GitHub `sha256:` digest.
 
-FastAPI viene avviata solo dopo il completamento con successo del bootstrap iniziale.
+Before switching, it verifies:
 
-Questo evita che l'API venga avviata contro un database vuoto durante una nuova installazione.
+1. downloaded SHA256;
+2. custom dump readability with `pg_restore --list`;
+3. restore completion with `--exit-on-error` into `icv_db_candidate`;
+4. candidate connectivity and presence of user tables.
 
-## Aggiornamenti automatici
-
-Dopo l'avvio di FastAPI, l'updater viene eseguito periodicamente all'interno del processo applicativo.
-
-Valori predefiniti:
-
-```text
-DB_AUTO_UPDATE=true
-DB_UPDATE_INTERVAL=86400
-DB_UPDATE_START_DELAY=60
-```
-
-L'intervallo viene calcolato dal completamento di un controllo aggiornamenti all'inizio di quello successivo.
-
-Di conseguenza, due aggiornamenti non possono sovrapporsi anche se un update impiega più tempo dell'intervallo configurato.
-
-È inoltre presente un lock interno che impedisce l'esecuzione concorrente di più aggiornamenti.
-
-## Sicurezza dell'aggiornamento
-
-Gli aggiornamenti non vengono mai ripristinati direttamente sul database attivo.
-
-L'updater crea invece:
-
-```text
-icv_db_candidate
-```
-
-e ripristina lì il nuovo snapshot.
-
-Il database attivo rimane:
-
-```text
-icv_db
-```
-
-e continua a servire le richieste durante download, restore e validazione del database candidato.
-
-### Validazione
-
-Prima dello switch vengono verificati:
-
-1. digest SHA256 fornito da GitHub;
-2. validità del dump tramite `pg_restore --list`;
-3. completamento di `pg_restore` con `--exit-on-error`;
-4. connessione al database candidato;
-5. presenza di tabelle utente nel database candidato.
-
-### Switch del database
-
-Dopo la validazione:
+The active `icv_db` remains available during download, inspection, restore, and
+candidate validation. Maintenance mode begins only for the database rename and
+post-switch validation; HTTP requests then receive `503` with `Retry-After: 5`.
 
 ```text
 icv_db           → icv_db_previous
 icv_db_candidate → icv_db
 ```
 
-Durante questa breve operazione viene attivata la modalità manutenzione.
+After successful final validation, the updater atomically writes
+`/data/state/snapshot-version` and removes the previous database. A failed final
+validation attempts rollback from `icv_db_previous`. Earlier failures never
+modify the active database.
 
-Le richieste HTTP ricevute durante la manutenzione restituiscono:
+## Security boundaries
 
-```text
-503 Service Unavailable
-```
+- WebUI, WebAPI, and Torznab currently have no authentication.
+- `apikey` is accepted for Torznab compatibility but not validated.
+- Deploy port `8000` only on a trusted LAN or behind an authenticated proxy.
+- Prowlarr API keys are masked in normal reads and sanitized from WebAPI errors.
+- Stored settings are not encrypted; protect the `/data` volume.
+- PostgreSQL binds internally to `127.0.0.1:5432`.
+- All HTTP-derived SQL values use psycopg parameter binding.
+- XML is built with `xml.etree.ElementTree`, not string concatenation.
 
-Dopo lo switch, il nuovo `icv_db` viene validato nuovamente.
+## Upgrade compatibility
 
-Se la validazione ha successo:
+v1.1 preserves the v1.0 image port, PostgreSQL 16 cluster location, `/data`
+volume, snapshot-version state, bootstrap/update model, Torznab route, and XML
+contract. An existing v1.0 volume should be reused directly; v1.1 adds
+`settings.json` with defaults on first access.
 
-```text
-scrittura snapshot-version
-eliminazione icv_db_previous
-disattivazione maintenance mode
-```
-
-Se la validazione fallisce, l'updater tenta di ripristinare `icv_db_previous` come database attivo.
-
-## Gestione degli errori
-
-### Errore di download
-
-Il database attivo non viene modificato.
-
-### SHA256 non valido
-
-Il file scaricato viene eliminato e il database attivo non viene modificato.
-
-### Dump non valido
-
-L'aggiornamento viene interrotto prima del restore.
-
-### Errore nel restore del database candidato
-
-Il database candidato viene eliminato e il database attivo rimane invariato.
-
-### Validazione fallita del database candidato
-
-Il database candidato viene eliminato e il database attivo rimane invariato.
-
-### Validazione fallita dopo lo switch
-
-L'updater tenta di ripristinare `icv_db_previous` come database attivo.
-
-La versione installata viene aggiornata solo dopo uno switch completato con successo.
-
-## Persistenza
-
-Viene utilizzato un singolo volume Docker:
-
-```text
--v icvdb_torznab_data:/data
-```
-
-Contenuto:
-
-```text
-/data/
-├── postgres/
-│   └── cluster PostgreSQL
-└── state/
-    └── snapshot-version
-```
-
-La ricreazione del container preserva quindi sia il database sia la versione dello snapshot installato.
-
-## Networking
-
-Esposto verso l'esterno:
-
-```text
-8000/tcp → FastAPI
-```
-
-Solo interno al container:
-
-```text
-5432/tcp → PostgreSQL su 127.0.0.1
-```
-
-Non è necessario pubblicare la porta PostgreSQL.
-
-## Docker Compose
-
-La configurazione Compose utilizza la stessa architettura single-container e scarica l'immagine pubblicata su GHCR:
-
-```yaml
-services:
-  icvdb-torznab:
-    image: ghcr.io/xbit18/icvdb-torznab:latest
-    container_name: icvdb-torznab
-    restart: unless-stopped
-
-    ports:
-      - "8000:8000"
-
-    volumes:
-      - icvdb_data:/data
-
-    environment:
-      DB_AUTO_UPDATE: "true"
-      DB_UPDATE_INTERVAL: "86400"
-
-volumes:
-  icvdb_data:
-    name: icvdb_torznab_data
-```
-
-Docker Compose è opzionale. La stessa immagine può essere avviata direttamente con `docker run`.
-
-## Distribuzione
-
-L'immagine viene pubblicata su GitHub Container Registry:
-
-```text
-ghcr.io/xbit18/icvdb-torznab
-```
-
-L'architettura runtime non dipende dal meccanismo di distribuzione: bootstrap e aggiornamento del database funzionano allo stesso modo sia con `docker run` sia con Docker Compose.
+Never remove the volume during an application-image upgrade. Full Docker-based
+upgrade verification remains a release-readiness task, so this compatibility
+claim reflects the preserved implementation invariants rather than a completed
+runtime certification.
