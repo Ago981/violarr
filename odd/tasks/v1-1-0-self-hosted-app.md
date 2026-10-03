@@ -92,15 +92,17 @@ The v1.0 service is operationally safe but backend-only. Users cannot inspect st
   - Commits: `183fd3c` (safe FastAPI SPA hosting) and `7168a29` (multi-stage single-container image).
   - RDD outcome: `disabled/unmanaged` (global mode is off).
 
-- [ ] **V110-05 — Publish cohesive product documentation**
+- [x] **V110-05 — Publish cohesive product documentation**
   - Route: delegated; VitePress structure, shared visual tokens, workflows, README, and architecture docs span many files.
   - Add the requested Markdown-first navigation, shared violet/orange design language, responsive light/dark theme, Pages workflow, troubleshooting, API/configuration reference, and v1.0 upgrade path.
   - Document LAN/no-auth posture, Prowlarr reachability, environment/settings precedence, hard-filter versus ranking semantics, and downstream Radarr/Sonarr behavior.
   - Keep README focused on preview, features, quick start, WebUI, Prowlarr, and documentation links.
   - Acceptance: docs build locally; Pages workflow uses the correct base; user-visible behavior and architecture agree with implementation.
   - Checks: VitePress build, link/config review, README command validation.
-  - Commit: pending.
-  - RDD outcome: pending.
+  - Evidence: formatting and VitePress build passed with no broken internal links; production audit reports zero vulnerabilities; implementation contracts received independent source verification.
+  - Commits: `a92643b`, `5d1e895`, `9bb828b`, `af57004`, `140f01a`, `495834c`, and `932af69`.
+  - Risk: VitePress 1.6.4 currently resolves development-only Vite/esbuild advisories with no compatible automatic fix; static output and production dependencies are unaffected, and docs development remains localhost-only.
+  - RDD outcome: `disabled/unmanaged` (global mode is off).
 
 - [ ] **V110-06 — Final regression and release-readiness verification**
   - Route: delegated verification; full builds and runtime checks exceed the parent execution budget.
@@ -114,10 +116,10 @@ The v1.0 service is operationally safe but backend-only. Users cannot inspect st
 
 - Exploration completed against the repository, Prowlarr OpenAPI/controller sources, Downtify, Vue/Vite, FastAPI static serving, and VitePress deployment documentation.
 - Current branch: `feature/v1.1.0`.
-- Current task: `V110-05`; V110-04 awaits Docker-capable verification.
-- Running authored-line count: 5,455 committed, excluding generated lockfiles.
+- Current task: `V110-06`; Docker CLI is now available, so V110-04 runtime verification resumes as part of final checks.
+- Running authored-line count: 7,381 committed, excluding generated lockfiles.
 - Reviewed boundary: branch point `d022024`.
 
 ## Next step
 
-Implement `V110-05`: publish the VitePress documentation site and update user/architecture documentation. Revisit V110-04 container checks during final verification on a Docker-capable host.
+Run V110-06 release-readiness verification, including image build, fresh-container smoke, persistence restart, real PostgreSQL searches, and a disposable v1.0-volume upgrade where the published image is available.
