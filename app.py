@@ -1,9 +1,14 @@
 import os
+from collections.abc import Mapping
+from pathlib import Path
 from snapshot_updater import install_snapshot_updater
-from fastapi import FastAPI, Query, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 import psycopg
 from result_processor import process_results
 from settings import SettingsStore
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from webapi import create_webapi_router
 from xml.etree.ElementTree import (
     Element,
@@ -30,6 +35,105 @@ TORZNAB_NS = "http://torznab.com/schemas/2015/feed"
 register_namespace("torznab", TORZNAB_NS)
 
 RESULT_CANDIDATE_WINDOW = 1000
+DEFAULT_FRONTEND_DIST = Path("/app/frontend-dist")
+FRONTEND_DIST_ENV = "FRONTEND_DIST_DIR"
+_FRONTEND_RESERVED_PREFIXES = {
+    "api",
+    "docs",
+    "openapi.json",
+    "redoc",
+    "webapi",
+}
+
+
+def frontend_dist_path(environ: Mapping[str, str] | None = None) -> Path:
+    values = os.environ if environ is None else environ
+    return Path(values.get(FRONTEND_DIST_ENV, str(DEFAULT_FRONTEND_DIST)))
+
+
+def _accepts_html(request: Request) -> bool:
+    for item in request.headers.get("accept", "").lower().split(","):
+        media_type, *parameters = (part.strip() for part in item.split(";"))
+        if media_type not in {"text/html", "application/xhtml+xml"}:
+            continue
+        quality = next(
+            (
+                parameter.partition("=")[2]
+                for parameter in parameters
+                if parameter.partition("=")[0].strip() == "q"
+            ),
+            "1",
+        )
+        try:
+            if float(quality) <= 0:
+                continue
+        except ValueError:
+            continue
+        return True
+    return False
+
+
+def _safe_frontend_path(path: str) -> bool:
+    if "\\" in path or "\0" in path:
+        return False
+    return all(segment not in {".", ".."} for segment in path.split("/"))
+
+
+def _frontend_fallback_allowed(path: str, request: Request) -> bool:
+    if not _accepts_html(request):
+        return False
+    if not path or path.split("/", 1)[0] in _FRONTEND_RESERVED_PREFIXES:
+        return False
+    return "." not in path.rsplit("/", 1)[-1]
+
+
+def install_frontend(
+    application: FastAPI,
+    dist_dir: str | os.PathLike[str] | None = None,
+) -> bool:
+    """Install low-priority SPA routes when a complete frontend build exists."""
+    directory = Path(dist_dir) if dist_dir is not None else frontend_dist_path()
+    index_file = directory / "index.html"
+    if not index_file.is_file():
+        return False
+
+    static_files = StaticFiles(directory=directory, check_dir=True)
+
+    async def frontend_response(frontend_path: str, request: Request):
+        first_segment = frontend_path.split("/", 1)[0]
+        if first_segment in _FRONTEND_RESERVED_PREFIXES or not _safe_frontend_path(
+            frontend_path
+        ):
+            raise HTTPException(status_code=404)
+
+        if not frontend_path and _accepts_html(request):
+            return FileResponse(index_file)
+        if not frontend_path:
+            raise HTTPException(status_code=404)
+
+        try:
+            response = await static_files.get_response(frontend_path, request.scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code != 404:
+                raise
+        else:
+            if response.status_code != 404:
+                return response
+        if _frontend_fallback_allowed(frontend_path, request):
+            return FileResponse(index_file)
+        raise HTTPException(status_code=404)
+
+    @application.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
+    async def frontend_root(request: Request):
+        return await frontend_response("", request)
+
+    @application.api_route(
+        "/{frontend_path:path}", methods=["GET", "HEAD"], include_in_schema=False
+    )
+    async def frontend_route(frontend_path: str, request: Request):
+        return await frontend_response(frontend_path, request)
+
+    return True
 
 
 def get_conn():
@@ -815,3 +919,6 @@ def torznab(
         content=make_rss([]),
         media_type="application/xml",
     )
+
+
+install_frontend(app)
