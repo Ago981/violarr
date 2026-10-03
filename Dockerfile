@@ -1,3 +1,14 @@
+FROM node:24-bookworm-slim AS frontend-build
+
+WORKDIR /build/frontend
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+COPY frontend/ ./
+RUN npm run build
+
+
 FROM postgres:16-bookworm
 
 LABEL org.opencontainers.image.source="https://github.com/xbit18/icvdb-torznab"
@@ -34,7 +45,8 @@ COPY requirements.txt .
 RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
-COPY app.py snapshot_updater.py entrypoint.sh ./
+COPY app.py snapshot_updater.py settings.py result_processor.py prowlarr.py webapi.py entrypoint.sh ./
+COPY --from=frontend-build /build/frontend/dist /app/frontend-dist
 
 RUN chmod +x /app/entrypoint.sh
 
