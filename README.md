@@ -23,7 +23,7 @@ docker run -d \
   -p 8000:8000 \
   -v icvdb_torznab_data:/data \
   --restart unless-stopped \
-  icvdb-torznab:latest
+  ghcr.io/xbit18/icvdb-torznab:latest
 ```
 
 Al primo avvio il container esegue automaticamente:
@@ -43,7 +43,7 @@ Non è necessario configurare o ripristinare manualmente il database.
 ```yaml
 services:
   icvdb-torznab:
-    build: .
+    image: ghcr.io/xbit18/icvdb-torznab:latest
     container_name: icvdb-torznab
     restart: unless-stopped
 
@@ -65,7 +65,14 @@ volumes:
 Avvio:
 
 ```bash
-docker compose up -d --build
+docker compose up -d
+```
+
+Per aggiornare l'immagine dell'applicazione:
+
+```bash
+docker compose pull
+docker compose up -d
 ```
 
 ## Dati persistenti
@@ -140,7 +147,7 @@ Se il download, la validazione o il restore falliscono, il database attualmente 
 
 ## Configurazione
 
-Il container fornisce valori predefiniti sensati e normalmente non richiede variabili d'ambiente aggiuntive.
+Il container fornisce valori predefiniti e normalmente non richiede variabili d'ambiente aggiuntive.
 
 Opzioni disponibili:
 
@@ -207,17 +214,17 @@ Categorie Torznab:
 Build locale dell'immagine:
 
 ```bash
-docker build -t icvdb-torznab:latest .
+docker build -t icvdb-torznab:local .
 ```
 
-Avvio:
+Avvio dell'immagine locale:
 
 ```bash
 docker run -d \
   --name icvdb-torznab \
   -p 8000:8000 \
   -v icvdb_torznab_data:/data \
-  icvdb-torznab:latest
+  icvdb-torznab:local
 ```
 
 Log:

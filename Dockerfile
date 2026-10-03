@@ -1,5 +1,9 @@
 FROM postgres:16-bookworm
 
+LABEL org.opencontainers.image.source="https://github.com/xbit18/icvdb-torznab"
+LABEL org.opencontainers.image.description="Indexer Torznab self-hosted per ICVDB con PostgreSQL e aggiornamenti automatici del database"
+LABEL org.opencontainers.image.licenses="MIT"
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \

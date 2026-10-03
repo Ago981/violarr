@@ -289,12 +289,12 @@ Non è necessario pubblicare la porta PostgreSQL.
 
 ## Docker Compose
 
-La configurazione Compose utilizza la stessa architettura single-container:
+La configurazione Compose utilizza la stessa architettura single-container e scarica l'immagine pubblicata su GHCR:
 
 ```yaml
 services:
   icvdb-torznab:
-    build: .
+    image: ghcr.io/xbit18/icvdb-torznab:latest
     container_name: icvdb-torznab
     restart: unless-stopped
 
@@ -315,14 +315,12 @@ volumes:
 
 Docker Compose è opzionale. La stessa immagine può essere avviata direttamente con `docker run`.
 
-## Distribuzione futura
+## Distribuzione
 
-L'architettura runtime non dipende dal meccanismo con cui viene distribuita l'immagine.
-
-Una futura immagine pubblicata potrà quindi essere avviata con:
+L'immagine viene pubblicata su GitHub Container Registry:
 
 ```text
-docker run ...
+ghcr.io/xbit18/icvdb-torznab
 ```
 
-senza modificare la logica di bootstrap o di aggiornamento del database.
+L'architettura runtime non dipende dal meccanismo di distribuzione: bootstrap e aggiornamento del database funzionano allo stesso modo sia con `docker run` sia con Docker Compose.

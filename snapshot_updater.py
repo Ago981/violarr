@@ -51,17 +51,17 @@ class SnapshotUpdater:
     def __init__(self) -> None:
         self.enabled = _env_bool("DB_AUTO_UPDATE", True)
         self.interval = int(os.getenv("DB_UPDATE_INTERVAL", "86400"))
-        self.start_delay = int(os.getenv("DB_UPDATE_START_DELAY", "5"))
+        self.start_delay = int(os.getenv("DB_UPDATE_START_DELAY", "60"))
 
-        self.db_host = os.getenv("DB_HOST", "db")
+        self.db_host = os.getenv("DB_HOST", "127.0.0.1")
         self.db_port = int(os.getenv("DB_PORT", "5432"))
         self.db_name = os.getenv("DB_NAME", "icv_db")
         self.db_user = os.getenv("DB_USER", "icv")
-        self.db_password = os.getenv("DB_PASSWORD", "")
+        self.db_password = os.getenv("DB_PASSWORD", "icv_internal")
         self.admin_db = os.getenv("DB_ADMIN_DB", "postgres")
 
         self.state_file = Path(
-            os.getenv("SNAPSHOT_STATE_FILE", "/data/snapshot-version")
+            os.getenv("SNAPSHOT_STATE_FILE", "/data/state/snapshot-version")
         )
 
         self.maintenance = threading.Event()
@@ -545,3 +545,4 @@ def install_snapshot_updater(app: FastAPI) -> SnapshotUpdater:
     app.state.snapshot_updater = updater
 
     return updater
+
