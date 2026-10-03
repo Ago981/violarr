@@ -40,6 +40,25 @@ def test_final_stage_uses_clean_bookworm_runtime_and_pgdg_postgresql_16():
     assert "policy-rc.d" in stage
     assert re.search(r"\bgosu\b", stage)
     assert re.search(r"\btini\b", stage)
+    assert re.search(r"\blocales\b", stage)
+    assert "en_US.UTF-8 UTF-8" in stage
+    assert "locale-gen en_US.UTF-8" in stage
+
+
+def test_runtime_uses_utf8_locale_for_new_postgresql_clusters():
+    stage = logical_instructions(final_stage())
+    entrypoint = ENTRYPOINT.read_text(encoding="utf-8")
+    initialization = re.search(
+        r'if \[ ! -s "\$PGDATA/PG_VERSION" \]; then(?P<body>.*?)\nfi',
+        entrypoint,
+        re.DOTALL,
+    )
+
+    assert re.search(r'\bLANG="?en_US\.utf8"?', stage)
+    assert initialization is not None
+    assert re.search(r"\binitdb\b", initialization["body"])
+    assert "--encoding=UTF8" in initialization["body"]
+    assert "--locale=en_US.utf8" in initialization["body"]
 
 
 def test_final_stage_declares_only_product_volume_and_port():

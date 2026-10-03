@@ -17,6 +17,7 @@ LABEL org.opencontainers.image.licenses="MIT"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    LANG="en_US.utf8" \
     PATH="/opt/venv/bin:/usr/lib/postgresql/16/bin:$PATH" \
     PGDATA="/data/postgres" \
     DB_HOST="127.0.0.1" \
@@ -45,11 +46,14 @@ RUN apt-get update \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         gosu \
+        locales \
         postgresql-16 \
         postgresql-client-16 \
         python3 \
         python3-venv \
         tini \
+    && echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen \
+    && locale-gen en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --home-dir /app --shell /usr/sbin/nologin app
 

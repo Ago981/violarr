@@ -53,6 +53,8 @@ if [ ! -s "$PGDATA/PG_VERSION" ]; then
         -D "$PGDATA" \
         --username="$DB_USER" \
         --pwfile="$PWFILE" \
+        --encoding=UTF8 \
+        --locale=en_US.utf8 \
         --auth-local=trust \
         --auth-host=scram-sha-256
 
