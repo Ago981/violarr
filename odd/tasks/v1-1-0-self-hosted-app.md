@@ -45,7 +45,7 @@ The v1.0 service is operationally safe but backend-only. Users cannot inspect st
 
 ## Tasks
 
-- [ ] **V110-01 — Persist settings and process results**
+- [x] **V110-01 — Persist settings and process results**
   - Route: delegated; preparation and implementation span multiple non-trivial modules and tests.
   - Add versioned defaults, validation, atomic persistence, environment initialization/override semantics, and secret masking.
   - Add presets `unfiltered`, `italian_preferred`, `italian_only`, and `custom` with structured rules.
@@ -54,18 +54,21 @@ The v1.0 service is operationally safe but backend-only. Users cannot inspect st
   - Acceptance: defaults auto-create under `/data/state`; restart reloads settings; Italian preferred ranks without removing fallback; Italian only filters; custom score/exclude/minimum-seeders/disabled rules work.
   - Checks: focused pytest suite for settings and result processing; existing Torznab characterization tests.
   - Evidence: 41 focused/full tests passed; parent spot-check repeated 41 passes with 5 pre-existing deprecation warnings.
-  - Commits: `a76643d` (result processor), `3034f24` (persistent settings), and the Torznab integration work-unit commit containing this task record.
-  - RDD outcome: pending.
+  - Commits: `a76643d` (result processor), `3034f24` (persistent settings), and `7c51831` (Torznab integration and regression coverage).
+  - Delivery note: the cohesive settings unit is 452 authored lines; it exceeds the 400-line heuristic by 52 lines because validation, persistence, masking, and their behavior tests must remain reviewable together.
+  - RDD outcome: `disabled/unmanaged` (global mode is off).
 
-- [ ] **V110-02 — Expose internal API and Prowlarr integration**
+- [x] **V110-02 — Expose internal API and Prowlarr integration**
   - Route: delegated; multiple backend modules, HTTP contracts, and mocks are required.
   - Add non-colliding `/webapi` endpoints for health/status, settings, result processing, and Prowlarr.
   - Expose updater state without changing candidate restore/switch semantics.
   - Derive Generic Torznab resources from Prowlarr `/api/v1/indexer/schema`, test and create them with `X-Api-Key`, and detect existing installation by implementation plus normalized URL/path.
   - Acceptance: secrets remain masked; connection failures are actionable; already-installed detection is idempotent; `/api` remains unchanged.
   - Checks: mocked Prowlarr success/failure/schema/create tests; FastAPI endpoint and Torznab regression tests.
-  - Commit: pending.
-  - RDD outcome: pending.
+  - Evidence: 82 tests passed in the full suite; parent spot-check repeated 37 focused updater/Prowlarr/WebAPI tests with 5 deprecation warnings.
+  - Commits: `b50bae1` (safe WebUI settings updates), `bd0fb68` (runtime updater controls), `acd10dc` (schema-derived Prowlarr client), and `dab8dc8` (WebAPI endpoints).
+  - Delivery note: updater, Prowlarr, and WebAPI units are 452, 424, and 440 authored lines respectively; each keeps production behavior with its tests instead of splitting code from proof.
+  - RDD outcome: `disabled/unmanaged` (global mode is off).
 
 - [ ] **V110-03 — Build the Vue WebUI**
   - Route: delegated; new multi-file Vue application and responsive design system.
@@ -107,10 +110,10 @@ The v1.0 service is operationally safe but backend-only. Users cannot inspect st
 
 - Exploration completed against the repository, Prowlarr OpenAPI/controller sources, Downtify, Vue/Vite, FastAPI static serving, and VitePress deployment documentation.
 - Current branch: `feature/v1.1.0`.
-- Current task: `V110-01`.
-- Running authored-line count: 738 committed; Torznab integration pending.
+- Current task: `V110-03`.
+- Running authored-line count: 2,626 committed across seven reviewable work units.
 - Reviewed boundary: branch point `d022024`.
 
 ## Next step
 
-Implement `V110-01` test-first, verify it, commit it as one work unit, update this document and its Engram mirror, then assess the commit against the reviewed boundary.
+Implement `V110-03`: build the responsive Vue WebUI and shared product design system against the tested `/webapi` contracts.
