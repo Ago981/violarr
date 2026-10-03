@@ -1,41 +1,19 @@
 services:
-  db:
-    image: postgres:16
-    container_name: icvdb-postgres
-    restart: unless-stopped
-
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-
-    volumes:
-      - icvdb_data:/var/lib/postgresql/data
-
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  icv-torznab:
+  icvdb-torznab:
     build: .
-    container_name: icv-torznab
+    container_name: icvdb-torznab
     restart: unless-stopped
-
-    depends_on:
-      db:
-        condition: service_healthy
 
     ports:
       - "8000:8000"
 
+    volumes:
+      - icvdb_data:/data
+
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_AUTO_UPDATE: "true"
+      DB_UPDATE_INTERVAL: "86400"
 
 volumes:
   icvdb_data:
+    name: icvdb_torznab_data

@@ -1,227 +1,245 @@
 # ICVDB Torznab
 
-A lightweight Torznab-compatible API for ICVDB, designed to make the database usable as an indexer in applications such as Prowlarr.
+Indexer compatibile con Torznab per ICVDB, pensato per l'utilizzo self-hosted con Prowlarr.
 
-The service reads release information from a local PostgreSQL copy of the ICVDB database and exposes it through a Torznab-compatible API.
+L'applicazione viene eseguita come un singolo container Docker che include:
 
-## Features
+- PostgreSQL 16
+- API Torznab basata su FastAPI
+- bootstrap automatico dello snapshot ICVDB
+- aggiornamento automatico del database
 
-- Torznab-compatible API
-- Generic search
-- Movie search
-- TV search
-- IMDb ID support
-- TMDb ID support
-- Season and episode filtering
-- Movie, TV and Anime categories
-- Docker / Docker Compose deployment
-- Bundled PostgreSQL service
-- Public ICVDB database snapshot available from GitHub Releases
+Gli snapshot del database vengono scaricati da:
 
-## Torznab capabilities
+https://github.com/xbit18/icvdb-snapshots
 
-The API currently exposes:
+## Avvio rapido
 
-- `search`
-- `movie-search`
-- `tv-search`
-
-Categories:
-
-- `2000` — Movies
-- `5000` — TV
-- `5070` — TV / Anime
-
-## Requirements
-
-- Docker
-- Docker Compose
-- `curl` or another way to download the database snapshot
-
-## Quick start
-
-### 1. Clone the repository
+### Docker
 
 ```bash
-git clone https://github.com/xbit18/icvdb-torznab.git
-cd icvdb-torznab
+docker run -d \
+  --name icvdb-torznab \
+  -p 8000:8000 \
+  -v icvdb_torznab_data:/data \
+  --restart unless-stopped \
+  icvdb-torznab:latest
 ```
 
-### 2. Configure the environment
+Al primo avvio il container esegue automaticamente:
 
-Copy the example file:
+1. inizializzazione di PostgreSQL;
+2. recupero della release più recente degli snapshot ICVDB;
+3. download del dump PostgreSQL;
+4. verifica del digest SHA256;
+5. validazione del dump;
+6. ripristino del database;
+7. avvio dell'API Torznab.
 
-```bash
-cp .env.example .env
+Non è necessario configurare o ripristinare manualmente il database.
+
+### Docker Compose
+
+```yaml
+services:
+  icvdb-torznab:
+    build: .
+    container_name: icvdb-torznab
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - icvdb_data:/data
+
+    environment:
+      DB_AUTO_UPDATE: "true"
+      DB_UPDATE_INTERVAL: "86400"
+
+volumes:
+  icvdb_data:
+    name: icvdb_torznab_data
 ```
 
-Default configuration:
-
-```env
-DB_NAME=icv_db
-DB_USER=icv
-DB_PASSWORD=change-me
-```
-
-Change `DB_PASSWORD` before exposing the stack outside a trusted local environment.
-
-### 3. Download the ICVDB snapshot
-
-The current public snapshot is dated **2026-08-21** and is distributed as a PostgreSQL custom-format dump.
-
-```bash
-mkdir -p db
-
-curl -L \
-  -o db/icvdb-2026-08-21.dump \
-  https://github.com/xbit18/icvdb-torznab/releases/download/db-2026-08-21/icvdb-2026-08-21.dump
-```
-
-Published SHA256:
-
-```text
-446c49abcf8834fabdc9a4013130789cc94173cff86f5c5f50e8812b184a99b8
-```
-
-Optional verification:
-
-```bash
-echo "446c49abcf8834fabdc9a4013130789cc94173cff86f5c5f50e8812b184a99b8  db/icvdb-2026-08-21.dump" | sha256sum -c -
-```
-
-You can also download the snapshot manually from the [GitHub Releases](https://github.com/xbit18/icvdb-torznab/releases) page.
-
-### 4. Start PostgreSQL
-
-```bash
-docker compose up -d db
-```
-
-Wait until the database is healthy:
-
-```bash
-docker compose ps
-```
-
-### 5. Restore the snapshot
-
-On the first installation, restore the downloaded dump into the local PostgreSQL container:
-
-```bash
-docker compose exec -T db \
-  sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-privileges' \
-  < db/icvdb-2026-08-21.dump
-```
-
-The PostgreSQL data is stored in the Docker volume `icvdb_data`, so the restore only needs to be performed when initializing the database or when deliberately replacing it with a newer snapshot.
-
-### 6. Start the Torznab service
+Avvio:
 
 ```bash
 docker compose up -d --build
 ```
 
-The API will be available at:
+## Dati persistenti
+
+Tutti i dati persistenti vengono salvati sotto `/data`.
 
 ```text
-http://localhost:8000/api
+/data/
+├── postgres/
+└── state/
+    └── snapshot-version
 ```
 
-## Verify the installation
+Il volume Docker deve quindi essere montato su:
 
-Check Torznab capabilities:
+```text
+/data
+```
+
+La rimozione e ricreazione del container non elimina il database, purché il volume venga mantenuto.
+
+## Aggiornamento automatico del database
+
+Gli snapshot ICVDB vengono pubblicati come GitHub Releases nella repository:
+
+```text
+xbit18/icvdb-snapshots
+```
+
+L'applicazione controlla:
+
+```text
+https://api.github.com/repos/xbit18/icvdb-snapshots/releases/latest
+```
+
+La versione dello snapshot installato viene salvata in:
+
+```text
+/data/state/snapshot-version
+```
+
+Per impostazione predefinita, l'applicazione controlla la disponibilità di un nuovo snapshot ogni 24 ore.
+
+```text
+DB_AUTO_UPDATE=true
+DB_UPDATE_INTERVAL=86400
+```
+
+Quando è disponibile uno snapshot più recente, l'updater esegue:
+
+```text
+download snapshot
+      ↓
+verifica SHA256
+      ↓
+validazione dump PostgreSQL
+      ↓
+restore su database candidato
+      ↓
+validazione database candidato
+      ↓
+switch dei database
+      ↓
+salvataggio versione installata
+```
+
+Il database corrente continua a essere disponibile durante il download e il restore del nuovo snapshot.
+
+L'API entra in modalità manutenzione solo durante lo switch finale del database. Le richieste ricevute in quel breve intervallo restituiscono HTTP `503`.
+
+Se il download, la validazione o il restore falliscono, il database attualmente funzionante non viene modificato.
+
+## Configurazione
+
+Il container fornisce valori predefiniti sensati e normalmente non richiede variabili d'ambiente aggiuntive.
+
+Opzioni disponibili:
+
+| Variabile | Default | Descrizione |
+| --- | --- | --- |
+| `DB_AUTO_UPDATE` | `true` | Abilita gli aggiornamenti automatici degli snapshot |
+| `DB_UPDATE_INTERVAL` | `86400` | Secondi tra un controllo aggiornamenti e il successivo |
+| `DB_UPDATE_START_DELAY` | `60` | Ritardo iniziale prima del primo controllo periodico |
+| `SNAPSHOT_LATEST_URL` | GitHub latest release API | Permette di usare una sorgente snapshot alternativa |
+| `SNAPSHOT_STATE_FILE` | `/data/state/snapshot-version` | File contenente la versione dello snapshot installato |
+
+La configurazione PostgreSQL è interna al container e non deve essere esposta all'host.
+
+## Endpoint Torznab
+
+L'API è disponibile su:
+
+```text
+http://HOST:8000/api
+```
+
+Le capabilities possono essere testate con:
 
 ```bash
 curl 'http://localhost:8000/api?t=caps'
 ```
 
-A real search can be used to verify that the API is also reaching PostgreSQL:
+Una ricerca generica può essere testata con:
 
 ```bash
-curl -s 'http://localhost:8000/api?t=search&q=avatar'
+curl 'http://localhost:8000/api?t=search&limit=10'
 ```
-
-The response should be Torznab-compatible XML.
 
 ## Prowlarr
 
-Add the service to Prowlarr as a **Generic Torznab** indexer.
-
-Use:
+Aggiungi l'indexer come sorgente Torznab generica utilizzando:
 
 ```text
-http://<server-ip>:8000/api
+http://HOST:8000/api
 ```
 
-as the Torznab URL.
+Il parametro API key viene attualmente accettato per compatibilità Torznab, ma non viene utilizzato per l'autenticazione.
 
-No API key is currently required by this service.
+## Ricerche supportate
 
-If Prowlarr runs in another Docker container, use an address that is reachable from that container rather than `localhost`.
+L'indexer supporta attualmente:
 
-## API examples
+- ricerca generica
+- ricerca film
+- ricerca serie TV
+- ricerca tramite IMDb ID
+- ricerca tramite TMDb ID
 
-Capabilities:
+Categorie Torznab:
 
 ```text
-/api?t=caps
+2000  Movies
+5000  TV
+5070  TV/Anime
 ```
 
-Generic search:
+## Sviluppo
+
+Build locale dell'immagine:
+
+```bash
+docker build -t icvdb-torznab:latest .
+```
+
+Avvio:
+
+```bash
+docker run -d \
+  --name icvdb-torznab \
+  -p 8000:8000 \
+  -v icvdb_torznab_data:/data \
+  icvdb-torznab:latest
+```
+
+Log:
+
+```bash
+docker logs -f icvdb-torznab
+```
+
+## Struttura del progetto
 
 ```text
-/api?t=search&q=example
+.
+├── app.py
+├── snapshot_updater.py
+├── entrypoint.sh
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── ARCHITECTURE.md
+└── README.md
 ```
 
-Movie search:
-
-```text
-/api?t=movie&q=example
-```
-
-TV search:
-
-```text
-/api?t=tvsearch&q=example
-```
-
-## Database snapshots
-
-Database snapshots are intentionally distributed through GitHub Releases rather than committed to the Git repository because they are large binary files.
-
-The current snapshot:
-
-- Date: **2026-08-21**
-- Format: PostgreSQL custom dump (`pg_dump -Fc`)
-- File: `icvdb-2026-08-21.dump`
-- Size: approximately 340 MB
-- SHA256: `446c49abcf8834fabdc9a4013130789cc94173cff86f5c5f50e8812b184a99b8`
-
-Automatic database snapshot discovery and updating are not implemented yet. Updating to a future snapshot currently requires downloading and restoring it manually.
-
-## Docker services
-
-The Compose stack contains:
-
-- `db` — PostgreSQL 16 containing the local ICVDB snapshot
-- `icv-torznab` — FastAPI service exposing the Torznab API
-
-Database contents persist in the `icvdb_data` Docker volume.
-
-## Security
-
-Database credentials should be stored in `.env`.
-
-The `.env` file and local database dumps are ignored by Git and must not be committed.
-
-The default deployment exposes only the Torznab API on port `8000`; PostgreSQL is not published to the host.
-
-## Disclaimer
-
-This project provides a Torznab-compatible interface for a local copy of the ICVDB database.
-
-It does not host, distribute, or download media or torrent payloads.
-
-## License
+## Licenza
 
 MIT

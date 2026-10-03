@@ -1,444 +1,328 @@
-# Architecture
+# Architettura
 
-## Purpose
+## Panoramica
 
-`icvdb-torznab` exposes release information stored in a local PostgreSQL copy of the ICVDB database through a Torznab-compatible API.
+`icvdb-torznab` è un indexer compatibile con Torznab basato su ICVDB.
 
-Its primary purpose is to allow applications such as Prowlarr to use ICVDB as an indexer without querying the upstream ICVDB backend for every search.
-
-## Current architecture
+Il progetto viene distribuito come un singolo container Docker che contiene:
 
 ```text
-                   Torznab request
-                         │
-                         ▼
-                  ┌─────────────┐
-                  │   FastAPI   │
-                  │    /api     │
-                  └──────┬──────┘
-                         │
-                  normalize request
-                         │
-                         ▼
-                  ┌─────────────┐
-                  │ PostgreSQL  │
-                  │ local ICVDB │
-                  └──────┬──────┘
-                         │
-                    query results
-                         │
-                         ▼
-                  ┌─────────────┐
-                  │   Torznab   │
-                  │ XML mapping │
-                  └──────┬──────┘
-                         │
-                         ▼
-                  Torznab response
-                         │
-                         ▼
-                      Prowlarr
+┌───────────────────────────────────────┐
+│ container icvdb-torznab              │
+│                                       │
+│  PostgreSQL 16                        │
+│  FastAPI / Uvicorn                    │
+│  Snapshot updater                     │
+│                                       │
+│  /data                                │
+│  ├── postgres/                        │
+│  └── state/snapshot-version           │
+└───────────────────────────────────────┘
 ```
 
-The application and PostgreSQL database are deployed together through Docker Compose.
+All'host viene esposta soltanto l'API HTTP.
 
-## Docker architecture
+PostgreSQL ascolta su `127.0.0.1:5432` all'interno del container e non viene esposto esternamente.
 
-The Compose stack contains two services:
+## Componenti
+
+### Applicazione FastAPI
+
+`app.py` implementa l'API compatibile con Torznab.
+
+Si collega a PostgreSQL tramite:
 
 ```text
-┌────────────────────────────┐
-│ Docker Compose             │
-│                            │
-│  ┌──────────────────────┐  │
-│  │ db                   │  │
-│  │ PostgreSQL 16        │  │
-│  │                      │  │
-│  │ volume: icvdb_data   │  │
-│  └──────────┬───────────┘  │
-│             │              │
-│             │ PostgreSQL   │
-│             ▼              │
-│  ┌──────────────────────┐  │
-│  │ icv-torznab          │  │
-│  │ FastAPI / Uvicorn    │  │
-│  │                      │  │
-│  │ port 8000            │  │
-│  └──────────────────────┘  │
-│                            │
-└────────────────────────────┘
+127.0.0.1:5432
 ```
 
-PostgreSQL is not exposed to the host by default.
+I parametri di connessione al database sono valori interni forniti dal container.
 
-The Torznab service connects to PostgreSQL using the internal Docker hostname:
+L'applicazione FastAPI installa inoltre gli hook di lifecycle dello snapshot updater.
+
+### PostgreSQL
+
+Il container è basato su PostgreSQL 16.
+
+I dati persistenti di PostgreSQL vengono salvati in:
 
 ```text
-db:5432
+/data/postgres
 ```
 
-## Persistent storage
+Al primo avvio, `entrypoint.sh` inizializza il cluster PostgreSQL e crea il database applicativo.
 
-PostgreSQL data is stored in the named Docker volume:
+Agli avvii successivi viene riutilizzato il cluster PostgreSQL già presente nel volume Docker.
+
+### Entrypoint
+
+`entrypoint.sh` gestisce il ciclo di vita del container.
+
+Flusso di avvio:
 
 ```text
-icvdb_data
+avvio container
+      ↓
+inizializzazione PostgreSQL se necessaria
+      ↓
+avvio PostgreSQL
+      ↓
+attesa disponibilità PostgreSQL
+      ↓
+creazione database applicativo se necessario
+      ↓
+snapshot già installato?
+   ┌──┴──┐
+   no   sì
+   ↓      ↓
+bootstrap latest snapshot
+   ↓
+avvio FastAPI
 ```
 
-This means restarting or recreating the containers does not normally require restoring the database again.
+L'entrypoint gestisce anche lo shutdown del container e arresta in modo pulito sia Uvicorn sia PostgreSQL.
 
-Removing the volume destroys the local database.
+`tini` viene utilizzato come PID 1 per il corretto inoltro dei segnali e la gestione dei processi figli.
 
-Commands such as:
+## Sorgente degli snapshot
 
-```bash
-docker compose down -v
-```
-
-should therefore be used only when database deletion is intentional.
-
-## Database snapshot
-
-The ICVDB dataset is not committed to the Git repository.
-
-Database snapshots are distributed separately through GitHub Releases.
-
-Current snapshot:
+Gli snapshot del database vengono distribuiti separatamente tramite:
 
 ```text
-Tag: db-2026-08-21
-File: icvdb-2026-08-21.dump
-Format: PostgreSQL custom dump (pg_dump -Fc)
+https://github.com/xbit18/icvdb-snapshots
 ```
 
-The dump is restored into the local PostgreSQL service with `pg_restore`.
-
-Current installation flow:
+L'updater interroga:
 
 ```text
-Git repository
-      │
-      ├── application source
-      └── Docker Compose
-               │
-               ▼
-        PostgreSQL container
-               ▲
-               │
-        pg_restore
-               │
-GitHub Release ─┘
-   database dump
+https://api.github.com/repos/xbit18/icvdb-snapshots/releases/latest
 ```
 
-## API
-
-The main endpoint is:
+Ogni release contiene un dump PostgreSQL in formato custom:
 
 ```text
-GET /api
+icvdb-YYYY-MM-DD.dump
 ```
 
-The Torznab operation is selected using the `t` query parameter.
+GitHub espone il digest SHA256 dell'asset tramite la Releases API.
 
-Examples:
+La versione installata viene salvata in:
 
 ```text
-/api?t=caps
-/api?t=search&q=example
-/api?t=movie&q=example
-/api?t=tvsearch&q=example
+/data/state/snapshot-version
 ```
 
-## Supported search modes
-
-### Generic search
+Esempio:
 
 ```text
-t=search
+db-2026-10-04
 ```
 
-Supports:
+## Bootstrap iniziale
+
+Se il file con la versione dello snapshot non esiste, il container esegue il bootstrap iniziale prima di avviare FastAPI.
+
+L'updater esegue:
 
 ```text
-q
+recupero metadata latest release
+      ↓
+download asset .dump
+      ↓
+verifica SHA256
+      ↓
+pg_restore --list
+      ↓
+restore database candidato
+      ↓
+validazione database candidato
+      ↓
+switch del database
+      ↓
+scrittura snapshot-version
 ```
 
-### Movie search
+FastAPI viene avviata solo dopo il completamento con successo del bootstrap iniziale.
+
+Questo evita che l'API venga avviata contro un database vuoto durante una nuova installazione.
+
+## Aggiornamenti automatici
+
+Dopo l'avvio di FastAPI, l'updater viene eseguito periodicamente all'interno del processo applicativo.
+
+Valori predefiniti:
 
 ```text
-t=movie
+DB_AUTO_UPDATE=true
+DB_UPDATE_INTERVAL=86400
+DB_UPDATE_START_DELAY=60
 ```
 
-Supports parameters including:
+L'intervallo viene calcolato dal completamento di un controllo aggiornamenti all'inizio di quello successivo.
+
+Di conseguenza, due aggiornamenti non possono sovrapporsi anche se un update impiega più tempo dell'intervallo configurato.
+
+È inoltre presente un lock interno che impedisce l'esecuzione concorrente di più aggiornamenti.
+
+## Sicurezza dell'aggiornamento
+
+Gli aggiornamenti non vengono mai ripristinati direttamente sul database attivo.
+
+L'updater crea invece:
 
 ```text
-q
-imdbid
-tmdbid
+icv_db_candidate
 ```
 
-### TV search
+e ripristina lì il nuovo snapshot.
+
+Il database attivo rimane:
 
 ```text
-t=tvsearch
+icv_db
 ```
 
-Supports parameters including:
+e continua a servire le richieste durante download, restore e validazione del database candidato.
+
+### Validazione
+
+Prima dello switch vengono verificati:
+
+1. digest SHA256 fornito da GitHub;
+2. validità del dump tramite `pg_restore --list`;
+3. completamento di `pg_restore` con `--exit-on-error`;
+4. connessione al database candidato;
+5. presenza di tabelle utente nel database candidato.
+
+### Switch del database
+
+Dopo la validazione:
 
 ```text
-q
-season
-ep
-imdbid
+icv_db           → icv_db_previous
+icv_db_candidate → icv_db
 ```
 
-## Categories
+Durante questa breve operazione viene attivata la modalità manutenzione.
 
-Current Torznab categories:
-
-| ID | Category |
-|---:|---|
-| 2000 | Movies |
-| 5000 | TV |
-| 5070 | TV / Anime |
-
-## Database configuration
-
-The Compose deployment uses:
+Le richieste HTTP ricevute durante la manutenzione restituiscono:
 
 ```text
-DB_NAME
-DB_USER
-DB_PASSWORD
+503 Service Unavailable
 ```
 
-The FastAPI service receives:
+Dopo lo switch, il nuovo `icv_db` viene validato nuovamente.
+
+Se la validazione ha successo:
 
 ```text
-DB_HOST=db
-DB_PORT=5432
-DB_NAME
-DB_USER
-DB_PASSWORD
+scrittura snapshot-version
+eliminazione icv_db_previous
+disattivazione maintenance mode
 ```
 
-The application also supports overriding all of these values through environment variables.
+Se la validazione fallisce, l'updater tenta di ripristinare `icv_db_previous` come database attivo.
 
-## Database ownership
+## Gestione degli errori
 
-ICVDB remains the source of the database schema and release data.
+### Errore di download
 
-`icvdb-torznab` should treat this schema as external.
+Il database attivo non viene modificato.
 
-The Torznab service should generally perform read-only queries.
+### SHA256 non valido
 
-The project should not:
+Il file scaricato viene eliminato e il database attivo non viene modificato.
 
-- maintain the upstream ICVDB database;
-- change the upstream schema;
-- introduce application-specific schema migrations without an explicit requirement.
+### Dump non valido
 
-## Identifier normalization
+L'aggiornamento viene interrotto prima del restore.
 
-External identifiers may arrive in different formats.
+### Errore nel restore del database candidato
 
-For example, IMDb IDs should be normalized before database comparison.
+Il database candidato viene eliminato e il database attivo rimane invariato.
 
-Normalization logic should remain centralized rather than being duplicated across search modes.
+### Validazione fallita del database candidato
 
-## Torznab XML
+Il database candidato viene eliminato e il database attivo rimane invariato.
 
-Search results are converted from ICVDB records into Torznab/Newznab-compatible XML expected by clients such as Prowlarr.
+### Validazione fallita dopo lo switch
 
-Compatibility is more important than cosmetic XML changes.
+L'updater tenta di ripristinare `icv_db_previous` come database attivo.
 
-The capabilities endpoint:
+La versione installata viene aggiornata solo dopo uno switch completato con successo.
+
+## Persistenza
+
+Viene utilizzato un singolo volume Docker:
 
 ```text
-/api?t=caps
+-v icvdb_torznab_data:/data
 ```
 
-must always reflect features actually implemented by the service.
-
-A successful `caps` request does not prove that PostgreSQL connectivity works because the capabilities response does not require a database query.
-
-A real search should therefore also be used when testing deployments.
-
-## Request flow
-
-A typical request follows this path:
+Contenuto:
 
 ```text
-Prowlarr
-   │
-   │ GET /api?t=movie&...
-   ▼
-FastAPI
-   │
-   ├── parse query parameters
-   ├── normalize identifiers
-   └── determine search mode
-   │
-   ▼
-PostgreSQL
-   │
-   └── parameterized query
-   │
-   ▼
-ICVDB rows
-   │
-   ├── normalize result data
-   └── map metadata to Torznab
-   │
-   ▼
-Torznab XML
-   │
-   ▼
-Prowlarr
+/data/
+├── postgres/
+│   └── cluster PostgreSQL
+└── state/
+    └── snapshot-version
 ```
 
-## Current self-hosting model
+La ricreazione del container preserva quindi sia il database sia la versione dello snapshot installato.
 
-The current version is fully self-hostable, but database initialization is manual.
+## Networking
 
-The user currently performs:
+Esposto verso l'esterno:
 
 ```text
-1. clone repository
-2. create .env
-3. download database snapshot
-4. start PostgreSQL
-5. restore snapshot with pg_restore
-6. start icvdb-torznab
-7. configure Prowlarr
+8000/tcp → FastAPI
 ```
 
-This design prevents normal indexer searches from placing load on the upstream ICVDB infrastructure.
-
-## Intended snapshot update architecture
-
-A future goal is to automate discovery and installation of new ICVDB snapshots.
-
-The preferred architecture is:
+Solo interno al container:
 
 ```text
-                 ICVDB PostgreSQL
-                        │
-                        │ periodic pg_dump
-                        ▼
-                ┌─────────────────┐
-                │ Static storage  │
-                │                 │
-                │ latest.json     │
-                │ dump files      │
-                └────────┬────────┘
-                         │
-                    HTTP download
-                         │
-              ┌──────────┴──────────┐
-              ▼                     ▼
-       self-hosted #1        self-hosted #2
-              │                     │
-              ▼                     ▼
-        local PostgreSQL      local PostgreSQL
-              │                     │
-              ▼                     ▼
-       icvdb-torznab         icvdb-torznab
+5432/tcp → PostgreSQL su 127.0.0.1
 ```
 
-The upstream database would generate one snapshot per release cycle.
+Non è necessario pubblicare la porta PostgreSQL.
 
-The snapshot itself would then be distributed as a static file, avoiding repeated load on the live backend.
+## Docker Compose
 
-## Snapshot manifest
+La configurazione Compose utilizza la stessa architettura single-container:
 
-A stable manifest URL could expose the newest available snapshot:
+```yaml
+services:
+  icvdb-torznab:
+    build: .
+    container_name: icvdb-torznab
+    restart: unless-stopped
 
-```json
-{
-  "version": "2026-10-08",
-  "url": "https://example.org/icvdb/icvdb-2026-10-08.dump",
-  "sha256": "..."
-}
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - icvdb_data:/data
+
+    environment:
+      DB_AUTO_UPDATE: "true"
+      DB_UPDATE_INTERVAL: "86400"
+
+volumes:
+  icvdb_data:
+    name: icvdb_torznab_data
 ```
 
-Example update flow:
+Docker Compose è opzionale. La stessa immagine può essere avviata direttamente con `docker run`.
+
+## Distribuzione futura
+
+L'architettura runtime non dipende dal meccanismo con cui viene distribuita l'immagine.
+
+Una futura immagine pubblicata potrà quindi essere avviata con:
 
 ```text
-Local version: 2026-10-01
-Remote version: 2026-10-01
-→ nothing to do
-
-Later:
-
-Local version: 2026-10-01
-Remote version: 2026-10-08
-→ download new dump
-→ verify SHA256
-→ restore database
-→ record version 2026-10-08
+docker run ...
 ```
 
-## Future database update concerns
-
-Automatic snapshot replacement must account for:
-
-- integrity verification;
-- failed downloads;
-- failed restores;
-- avoiding partial databases;
-- avoiding unnecessary downtime;
-- rollback;
-- disk space;
-- atomic switching between old and new data where possible.
-
-A future implementation should preferably restore a new snapshot separately and switch over only after successful validation rather than destroying the working database first.
-
-## Snapshot status
-
-Manual snapshot download and restoration are already supported and documented.
-
-Automatic snapshot discovery and updating are not implemented yet.
-
-## Security boundaries
-
-The Torznab API is the only service exposed by the default Compose configuration.
-
-PostgreSQL remains internal to the Docker network.
-
-Database credentials are provided through environment variables.
-
-The application should never expose:
-
-- database passwords;
-- internal connection strings;
-- sensitive stack traces;
-- secrets.
-
-SQL originating from HTTP parameters must always use psycopg parameter binding.
-
-## Design goal
-
-The service should remain a thin compatibility layer.
-
-Responsibilities should remain clearly separated:
-
-```text
-ICVDB
-    → source data
-
-snapshot publishing
-    → distributes source data efficiently
-
-PostgreSQL
-    → stores the local snapshot
-
-icvdb-torznab
-    → translates database records to Torznab
-
-Prowlarr
-    → consumes the Torznab indexer
-```
-
-Avoid moving responsibilities between these layers without a concrete reason.
+senza modificare la logica di bootstrap o di aggiornamento del database.

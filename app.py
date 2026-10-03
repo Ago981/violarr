@@ -1,5 +1,5 @@
 import os
-
+from snapshot_updater import install_snapshot_updater
 from fastapi import FastAPI, Query, Response
 import psycopg
 from xml.etree.ElementTree import (
@@ -10,6 +10,7 @@ from xml.etree.ElementTree import (
 )
 
 app = FastAPI()
+install_snapshot_updater(app)
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "host.docker.internal"),
