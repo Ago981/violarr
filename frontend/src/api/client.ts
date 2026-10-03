@@ -1,7 +1,16 @@
-import type { AppStatus, IndexerResult, ProwlarrStatus, PublicSettings, ResultProcessing } from './types'
+import type {
+  AppStatus,
+  IndexerResult,
+  ProwlarrStatus,
+  PublicSettings,
+  ResultProcessing,
+} from './types'
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number | null = null) {
+  constructor(
+    message: string,
+    readonly status: number | null = null,
+  ) {
     super(message)
     this.name = 'ApiError'
   }
@@ -15,7 +24,10 @@ export async function requestJson<T>(path: string, init?: RequestInit): Promise<
   const forwardAbort = () => controller.abort(init?.signal?.reason)
   if (init?.signal?.aborted) forwardAbort()
   else init?.signal?.addEventListener('abort', forwardAbort, { once: true })
-  const timeout = setTimeout(() => { timedOut = true; controller.abort() }, REQUEST_TIMEOUT_MS)
+  const timeout = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, REQUEST_TIMEOUT_MS)
   let response: Response
   try {
     response = await fetch(path, {
@@ -36,14 +48,15 @@ export async function requestJson<T>(path: string, init?: RequestInit): Promise<
   if (!response.ok) {
     let detail: unknown
     try {
-      const body = await response.json() as { detail?: unknown }
+      const body = (await response.json()) as { detail?: unknown }
       detail = body.detail
     } catch {
       detail = null
     }
-    const message = typeof detail === 'string' && detail.trim()
-      ? detail
-      : `Request failed (${response.status}). Please try again.`
+    const message =
+      typeof detail === 'string' && detail.trim()
+        ? detail
+        : `Request failed (${response.status}). Please try again.`
     throw new ApiError(message, response.status)
   }
   return response.json() as Promise<T>
@@ -54,10 +67,13 @@ const json = (body: unknown): RequestInit => ({ method: 'PUT', body: JSON.string
 export const api = {
   status: () => requestJson<AppStatus>('/webapi/status'),
   settings: () => requestJson<PublicSettings>('/webapi/settings'),
-  saveSettings: (settings: PublicSettings) => requestJson<PublicSettings>('/webapi/settings', json(settings)),
+  saveSettings: (settings: PublicSettings) =>
+    requestJson<PublicSettings>('/webapi/settings', json(settings)),
   resultProcessing: () => requestJson<ResultProcessing>('/webapi/result-processing'),
-  saveResultProcessing: (value: ResultProcessing) => requestJson<ResultProcessing>('/webapi/result-processing', json(value)),
+  saveResultProcessing: (value: ResultProcessing) =>
+    requestJson<ResultProcessing>('/webapi/result-processing', json(value)),
   prowlarrStatus: () => requestJson<ProwlarrStatus>('/webapi/prowlarr/status'),
-  testProwlarr: () => requestJson<{ connected: true; error: null }>('/webapi/prowlarr/test', { method: 'POST' }),
+  testProwlarr: () =>
+    requestJson<{ connected: true; error: null }>('/webapi/prowlarr/test', { method: 'POST' }),
   installIndexer: () => requestJson<IndexerResult>('/webapi/prowlarr/indexer', { method: 'POST' }),
 }

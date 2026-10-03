@@ -8,7 +8,10 @@ describe('application store orchestration', () => {
       status: vi.fn().mockResolvedValue(statusFixture),
       settings: vi.fn().mockResolvedValue(settingsFixture),
       prowlarrStatus: vi.fn().mockResolvedValue(statusFixture.prowlarr),
-      saveSettings: vi.fn(), saveResultProcessing: vi.fn(), testProwlarr: vi.fn(), installIndexer: vi.fn(),
+      saveSettings: vi.fn(),
+      saveResultProcessing: vi.fn(),
+      testProwlarr: vi.fn(),
+      installIndexer: vi.fn(),
     }
     const store = createAppStore(client)
 

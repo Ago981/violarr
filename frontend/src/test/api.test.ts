@@ -5,10 +5,15 @@ afterEach(() => vi.useRealTimers())
 
 describe('API client', () => {
   it('normalizes JSON and non-JSON failures without exposing response internals', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
-      JSON.stringify({ detail: 'Interval must be at least 60 seconds' }),
-      { status: 422, headers: { 'Content-Type': 'application/json' } },
-    )))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ detail: 'Interval must be at least 60 seconds' }), {
+          status: 422,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
 
     await expect(requestJson('/webapi/settings')).rejects.toEqual(
       expect.objectContaining({ message: 'Interval must be at least 60 seconds', status: 422 }),
@@ -22,12 +27,22 @@ describe('API client', () => {
 
   it('aborts requests after the bounded timeout', async () => {
     vi.useFakeTimers()
-    vi.stubGlobal('fetch', vi.fn((_path, init) => new Promise((_resolve, reject) => {
-      init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
-    })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_path, init) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () =>
+              reject(new DOMException('Aborted', 'AbortError')),
+            )
+          }),
+      ),
+    )
 
     const request = requestJson('/webapi/status')
-    const rejection = expect(request).rejects.toEqual(new ApiError('The request timed out. Please try again.'))
+    const rejection = expect(request).rejects.toEqual(
+      new ApiError('The request timed out. Please try again.'),
+    )
     await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS)
 
     await rejection
@@ -36,9 +51,17 @@ describe('API client', () => {
   it('respects caller cancellation and removes the forwarding listener', async () => {
     const caller = new AbortController()
     const remove = vi.spyOn(caller.signal, 'removeEventListener')
-    vi.stubGlobal('fetch', vi.fn((_path, init) => new Promise((_resolve, reject) => {
-      init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
-    })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_path, init) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () =>
+              reject(new DOMException('Aborted', 'AbortError')),
+            )
+          }),
+      ),
+    )
 
     const request = requestJson('/webapi/status', { signal: caller.signal })
     caller.abort()
