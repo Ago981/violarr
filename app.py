@@ -2,6 +2,8 @@ import os
 from snapshot_updater import install_snapshot_updater
 from fastapi import FastAPI, Query, Response
 import psycopg
+from result_processor import process_results
+from settings import SettingsStore
 from xml.etree.ElementTree import (
     Element,
     SubElement,
@@ -23,6 +25,9 @@ DB_CONFIG = {
 TORZNAB_NS = "http://torznab.com/schemas/2015/feed"
 
 register_namespace("torznab", TORZNAB_NS)
+
+SETTINGS_STORE = SettingsStore()
+RESULT_CANDIDATE_WINDOW = 1000
 
 
 def get_conn():
@@ -693,6 +698,37 @@ def make_rss(rows):
     )
 
 
+def query_processed(query, query_args, limit, offset):
+    processing = SETTINGS_STORE.load()["result_processing"]
+    if processing["preset"] == "unfiltered":
+        return query(*query_args, limit, offset)
+
+    # Rank within fixed, non-overlapping database windows. This keeps memory
+    # bounded, supports arbitrary offsets, and fetches both windows when a page
+    # crosses a boundary; ranking intentionally remains local to each window.
+    request_end = offset + limit
+    first_window = (offset // RESULT_CANDIDATE_WINDOW) * RESULT_CANDIDATE_WINDOW
+    last_window = (
+        (request_end - 1) // RESULT_CANDIDATE_WINDOW
+    ) * RESULT_CANDIDATE_WINDOW
+    page = []
+    for window_offset in range(
+        first_window,
+        last_window + RESULT_CANDIDATE_WINDOW,
+        RESULT_CANDIDATE_WINDOW,
+    ):
+        rows = query(*query_args, RESULT_CANDIDATE_WINDOW, window_offset)
+        processed = process_results(
+            rows,
+            processing["preset"],
+            processing["custom_rules"],
+        )
+        local_start = max(offset - window_offset, 0)
+        local_end = min(request_end - window_offset, RESULT_CANDIDATE_WINDOW)
+        page.extend(processed[local_start:local_end])
+    return page
+
+
 @app.get("/api")
 def torznab(
     t: str = Query("search"),
@@ -725,8 +761,9 @@ def torznab(
     )
 
     if t == "search":
-        rows = query_generic(
-            q,
+        rows = query_processed(
+            query_generic,
+            (q,),
             limit,
             offset,
         )
@@ -737,10 +774,9 @@ def torznab(
         )
 
     if t == "movie":
-        rows = query_movie(
-            imdb_id,
-            tmdbid,
-            q,
+        rows = query_processed(
+            query_movie,
+            (imdb_id, tmdbid, q),
             limit,
             offset,
         )
@@ -751,11 +787,9 @@ def torznab(
         )
 
     if t == "tvsearch":
-        rows = query_tv(
-            imdb_id,
-            q,
-            season,
-            ep,
+        rows = query_processed(
+            query_tv,
+            (imdb_id, q, season, ep),
             limit,
             offset,
         )
