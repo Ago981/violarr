@@ -157,7 +157,7 @@ Evidence:
 
 - [x] Rename `xbit18/icvdb-torznab` to `xbit18/violarr` using the authorized active GitHub session.
 - [x] Update local `origin` to `https://github.com/xbit18/violarr.git`.
-- [ ] Push the authorized feature branch only.
+- [x] Push the authorized feature branch only.
 - [x] Confirm repository identity and exact Pages-ready URLs once.
 - [x] Run one final bounded verification covering Python, frontend, docs, Compose, image build, capabilities, and a real database search.
 
@@ -194,6 +194,7 @@ Evidence:
 - Frontend formatting, type checking, 23 tests, and production build passed; documentation formatting and production build passed.
 - Compose configuration resolved `ghcr.io/xbit18/violarr:latest`; the image built locally, the container started, caps returned `<caps>`, and an `avatar` search returned populated Torznab RSS from PostgreSQL.
 - Verification left the tracked worktree clean. No release, tag, pull request, or merge was created.
+- GitHub accepted `feature/v1.1.0` through transition and verification commit `f76e9bd`.
 
 ## Progress
 
@@ -202,8 +203,8 @@ Evidence:
 - [x] VIO-01 complete.
 - [x] VIO-02 complete.
 - [x] VIO-03 complete.
-- [ ] VIO-04 complete.
+- [x] VIO-04 complete.
 
 ## Next step
 
-Push the authorized feature branch, then record the final remote evidence and close VIO-04.
+Rebranding is complete and pushed. Pull request and merge remain user decisions.
