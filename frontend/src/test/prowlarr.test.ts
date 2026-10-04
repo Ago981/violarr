@@ -1,10 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/vue'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ProwlarrView from '../views/ProwlarrView.vue'
+import { useLocale } from '../i18n'
+import { ApiError } from '../api/client'
 import type { PublicSettings } from '../api/types'
 import { settingsFixture } from './fixtures'
 
 describe('Prowlarr settings', () => {
+  beforeEach(() => useLocale().setLocale('en'))
   it('shows fresh key entry and saves current values before test and install', async () => {
     const fresh = {
       ...settingsFixture,
@@ -35,7 +38,7 @@ describe('Prowlarr settings', () => {
     await waitFor(() => expect(calls).toEqual(['save', 'test']))
     expect(saveSettings.mock.calls[0][0].prowlarr.api_key).toBe('new-secret')
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Add ICVDB to Prowlarr' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add Violarr to Prowlarr' }))
     await waitFor(() => expect(calls).toEqual(['save', 'test', 'save', 'install']))
     expect(saveSettings.mock.calls[1][0].prowlarr).not.toHaveProperty('api_key')
   })
@@ -74,10 +77,10 @@ describe('Prowlarr settings', () => {
     })
     await fireEvent.click(screen.getByRole('button', { name: 'Test connection' }))
     expect(await screen.findByText('Connection successful.')).toBeTruthy()
-    await fireEvent.click(screen.getByRole('button', { name: 'Add ICVDB to Prowlarr' }))
-    expect(await screen.findByText('ICVDB is already installed.')).toBeTruthy()
-    await fireEvent.click(screen.getByRole('button', { name: 'Add ICVDB to Prowlarr' }))
-    expect(await screen.findByText('ICVDB was added to Prowlarr.')).toBeTruthy()
+    await fireEvent.click(screen.getByRole('button', { name: 'Add Violarr to Prowlarr' }))
+    expect(await screen.findByText('Violarr is already installed.')).toBeTruthy()
+    await fireEvent.click(screen.getByRole('button', { name: 'Add Violarr to Prowlarr' }))
+    expect(await screen.findByText('Violarr was added to Prowlarr.')).toBeTruthy()
   })
 
   it('retains form state after save failure and prevents duplicate operations', async () => {
@@ -102,5 +105,29 @@ describe('Prowlarr settings', () => {
     const alert = await screen.findByRole('alert')
     expect(alert.classList.contains('inline-error')).toBe(true)
     expect((screen.getByLabelText('New API key') as HTMLInputElement).value).toBe('retry-secret')
+  })
+
+  it('localizes known backend errors in Italian and preserves them in English', async () => {
+    useLocale().setLocale('it')
+    const testConnection = vi
+      .fn()
+      .mockRejectedValue(new ApiError('Prowlarr is not configured', 400, 'server'))
+    render(ProwlarrView, {
+      props: {
+        settings: settingsFixture,
+        status: null,
+        saveSettings: vi.fn().mockResolvedValue(undefined),
+        testConnection,
+      },
+    })
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Verifica connessione' }))
+    expect(await screen.findByText('Prowlarr non è configurato.')).toBeTruthy()
+    expect(screen.queryByText('Prowlarr is not configured')).toBeNull()
+
+    useLocale().setLocale('en')
+    const englishButton = await screen.findByRole('button', { name: 'Test connection' })
+    await fireEvent.click(englishButton)
+    expect(await screen.findByText('Prowlarr is not configured.')).toBeTruthy()
   })
 })

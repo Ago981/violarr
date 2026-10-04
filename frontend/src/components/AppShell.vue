@@ -3,9 +3,11 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { navigation } from '../composables/navigation'
 import { createThemeController } from '../composables/theme'
+import { useLocale, type Locale } from '../i18n'
 
 const route = useRoute()
 const theme = createThemeController()
+const locale = useLocale()
 const menuButton = ref<HTMLButtonElement | null>(null)
 const sidebar = ref<HTMLElement | null>(null)
 const main = ref<HTMLElement | null>(null)
@@ -70,13 +72,13 @@ onBeforeUnmount(() => {
   theme.dispose()
 })
 const links = [
-  ['/', 'Dashboard'],
-  ['/settings', 'General'],
-  ['/database', 'Database updates'],
-  ['/result-processing', 'Result processing'],
+  ['/', 'navigation.dashboard'],
+  ['/settings', 'navigation.general'],
+  ['/database', 'navigation.database'],
+  ['/result-processing', 'navigation.results'],
   ['/prowlarr', 'Prowlarr'],
-  ['/advanced', 'Advanced'],
-]
+  ['/advanced', 'navigation.advanced'],
+] as const
 </script>
 <template>
   <div class="app-shell">
@@ -85,20 +87,34 @@ const links = [
         ref="menuButton"
         class="icon-button menu-button"
         type="button"
-        aria-label="Open navigation"
+        :aria-label="locale.t('navigation.open')"
         :aria-expanded="navigation.mobileOpen.value"
         aria-controls="primary-navigation"
         @click="openNavigation"
       >
         ☰
       </button>
-      <RouterLink class="brand" to="/" aria-label="ICVDB Torznab dashboard"
-        ><span class="brand-mark">I</span><span>ICVDB Torznab</span></RouterLink
+      <RouterLink
+        class="brand"
+        to="/"
+        :aria-label="`${locale.t('app.title')} ${locale.t('navigation.dashboard')}`"
+        ><span class="brand-mark">V</span><span>Violarr</span></RouterLink
+      >
+      <label class="language-select"
+        ><span class="sr-only">{{ locale.t('language.label') }}</span
+        ><select
+          :aria-label="locale.t('language.label')"
+          :value="locale.current.value"
+          @change="locale.setLocale(($event.target as HTMLSelectElement).value as Locale)"
+        >
+          <option value="it">{{ locale.t('language.it') }}</option>
+          <option value="en">{{ locale.t('language.en') }}</option>
+        </select></label
       >
       <label class="theme-select"
-        ><span class="sr-only">Color theme</span
+        ><span class="sr-only">{{ locale.t('theme.label') }}</span
         ><select
-          aria-label="Color theme"
+          :aria-label="locale.t('theme.label')"
           :value="theme.preference.value"
           @change="
             theme.setPreference(
@@ -106,9 +122,9 @@ const links = [
             )
           "
         >
-          <option value="system">System</option>
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
+          <option value="system">{{ locale.t('theme.system') }}</option>
+          <option value="light">{{ locale.t('theme.light') }}</option>
+          <option value="dark">{{ locale.t('theme.dark') }}</option>
         </select></label
       >
     </header>
@@ -123,14 +139,16 @@ const links = [
       ref="sidebar"
       class="sidebar"
       :class="{ 'sidebar--open': navigation.mobileOpen.value }"
-      aria-label="Primary navigation"
+      :aria-label="locale.t('navigation.primary')"
       :aria-hidden="!desktop && !navigation.mobileOpen.value"
       :inert="!desktop && !navigation.mobileOpen.value"
     >
       <nav>
-        <RouterLink v-for="[path, label] in links" :key="path" :to="path">{{ label }}</RouterLink>
+        <RouterLink v-for="[path, label] in links" :key="path" :to="path">{{
+          label === 'Prowlarr' ? label : locale.t(label)
+        }}</RouterLink>
       </nav>
-      <p class="sidebar-note">Local, self-hosted indexer bridge</p>
+      <p class="sidebar-note">{{ locale.t('app.subtitle') }}</p>
     </aside>
     <main id="main-content" ref="main" class="main" tabindex="-1"><RouterView /></main>
   </div>

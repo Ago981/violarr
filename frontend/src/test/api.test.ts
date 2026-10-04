@@ -1,7 +1,9 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, REQUEST_TIMEOUT_MS, requestJson } from '../api/client'
+import { useLocale } from '../i18n'
 
 afterEach(() => vi.useRealTimers())
+beforeEach(() => useLocale().setLocale('en'))
 
 describe('API client', () => {
   it('normalizes JSON and non-JSON failures without exposing response internals', async () => {

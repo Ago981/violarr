@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import type { IndexerResult, ProwlarrStatus, PublicSettings } from '../api/types'
-import { ApiError } from '../api/client'
+import { apiErrorMessage } from '../api/client'
 import { useAppStore } from '../composables/appStore'
 import StatusBadge from '../components/StatusBadge.vue'
+import { useLocale } from '../i18n'
 
 const props = defineProps<{
   settings?: PublicSettings
@@ -13,6 +14,7 @@ const props = defineProps<{
   installIndexer?: () => Promise<IndexerResult>
 }>()
 const store = useAppStore()
+const { t, localizeServerMessage } = useLocale()
 const form = reactive({ url: '', indexerUrl: '', apiKey: '' })
 const replaceKey = ref(false)
 const clearKey = ref(false)
@@ -26,6 +28,12 @@ const liveStatus = computed(() =>
 )
 const busy = computed(() => operation.value !== null || store.state.saving)
 const showKeyInput = computed(() => !keyConfigured.value || replaceKey.value)
+const displayedError = computed(() => {
+  if (failure.value) return failure.value
+  if (liveStatus.value?.error)
+    return localizeServerMessage(liveStatus.value.error, t('prowlarr.connectionFailed'))
+  return store.state.error
+})
 
 watch(
   source,
@@ -55,13 +63,12 @@ function toggleKeyReplacement() {
 }
 
 function validate(kind: 'save' | 'test' | 'install') {
-  if (form.url && !validHttpUrl(form.url)) return 'Enter a valid absolute HTTP Prowlarr URL.'
-  if (form.indexerUrl && !validHttpUrl(form.indexerUrl))
-    return 'Enter a valid absolute HTTP Indexer URL.'
-  if (kind !== 'save' && !form.url) return 'Enter the Prowlarr URL before continuing.'
+  if (form.url && !validHttpUrl(form.url)) return t('prowlarr.invalidUrl')
+  if (form.indexerUrl && !validHttpUrl(form.indexerUrl)) return t('prowlarr.invalidIndexerUrl')
+  if (kind !== 'save' && !form.url) return t('prowlarr.urlRequired')
   if (kind !== 'save' && (clearKey.value || (!keyConfigured.value && !form.apiKey)))
-    return 'Enter an API key before continuing.'
-  if (kind === 'install' && !form.indexerUrl) return 'Enter the Indexer URL before adding ICVDB.'
+    return t('prowlarr.keyRequired')
+  if (kind === 'install' && !form.indexerUrl) return t('prowlarr.indexerRequired')
   return null
 }
 
@@ -78,14 +85,14 @@ function payload(): PublicSettings | null {
 }
 
 function errorMessage(error: unknown, fallback: string) {
-  return error instanceof ApiError ? error.message : fallback
+  return apiErrorMessage(error, fallback)
 }
 
 async function persist(kind: 'save' | 'test' | 'install') {
   const validation = validate(kind)
   if (validation) throw new Error(validation)
   const value = payload()
-  if (!value) throw new Error('Settings are still loading. Please try again.')
+  if (!value) throw new Error(t('prowlarr.settingsLoading'))
   await (props.saveSettings ?? store.saveSettings)(value)
   if (clearKey.value) keyConfigured.value = false
   else if (form.apiKey) keyConfigured.value = true
@@ -101,12 +108,9 @@ async function save() {
   failure.value = ''
   try {
     await persist('save')
-    success.value = 'Prowlarr settings saved.'
+    success.value = t('prowlarr.settingsSaved')
   } catch (error) {
-    failure.value = errorMessage(
-      error,
-      'Settings could not be saved. Correct the form and try again.',
-    )
+    failure.value = errorMessage(error, t('prowlarr.saveFailed'))
   } finally {
     operation.value = null
   }
@@ -120,11 +124,11 @@ async function test() {
   try {
     await persist('test')
     await (props.testConnection ?? store.testProwlarr)()
-    success.value = 'Connection successful.'
+    success.value = t('prowlarr.connectionSuccessful')
   } catch (error) {
     failure.value = errorMessage(
       error,
-      error instanceof Error ? error.message : 'Connection failed. Check the URL and API key.',
+      error instanceof Error ? error.message : t('prowlarr.connectionFailed'),
     )
   } finally {
     operation.value = null
@@ -140,14 +144,12 @@ async function install() {
     await persist('install')
     const result = await (props.installIndexer ?? store.installIndexer)()
     success.value = result.already_installed
-      ? 'ICVDB is already installed.'
-      : 'ICVDB was added to Prowlarr.'
+      ? t('prowlarr.alreadyInstalled')
+      : t('prowlarr.installed')
   } catch (error) {
     failure.value = errorMessage(
       error,
-      error instanceof Error
-        ? error.message
-        : 'Indexer installation failed. Check the connection and Indexer URL.',
+      error instanceof Error ? error.message : t('prowlarr.installFailed'),
     )
   } finally {
     operation.value = null
@@ -159,38 +161,40 @@ async function install() {
   <section class="page page--prowlarr">
     <div class="page-heading">
       <div>
-        <p class="eyebrow eyebrow--prowlarr">Integration</p>
+        <p class="eyebrow eyebrow--prowlarr">{{ t('common.integration') }}</p>
         <h1>Prowlarr</h1>
-        <p>Connect Prowlarr and install ICVDB as a Generic Torznab indexer.</p>
+        <p>{{ t('prowlarr.intro') }}</p>
       </div>
       <StatusBadge
         v-if="liveStatus"
         :tone="liveStatus.connected ? 'success' : liveStatus.error ? 'danger' : 'neutral'"
         :label="
           liveStatus.connected
-            ? 'Connected'
+            ? t('common.connected')
             : liveStatus.configured
-              ? 'Not connected'
-              : 'Not configured'
+              ? t('common.notConnected')
+              : t('common.notConfigured')
         "
       />
     </div>
     <article v-if="source" class="card form-card card--prowlarr">
       <label
-        >Prowlarr URL<input
+        >{{ t('prowlarr.url')
+        }}<input
           v-model.trim="form.url"
           type="url"
           placeholder="http://prowlarr:9696"
           :disabled="busy"
       /></label>
       <p class="field-help">
-        Use an address reachable from this container. <code>localhost</code> usually points back to
-        the ICVDB container, not Prowlarr.
+        {{ t('prowlarr.urlHelp') }}
       </p>
       <div class="key-panel">
         <div>
-          <strong>API key</strong>
-          <p>{{ keyConfigured && !clearKey ? 'A key is saved' : 'No key is saved' }}</p>
+          <strong>{{ t('prowlarr.apiKey') }}</strong>
+          <p>
+            {{ keyConfigured && !clearKey ? t('prowlarr.keySaved') : t('prowlarr.noKeySaved') }}
+          </p>
         </div>
         <button
           v-if="keyConfigured"
@@ -199,47 +203,47 @@ async function install() {
           :disabled="busy"
           @click="toggleKeyReplacement"
         >
-          {{ replaceKey ? 'Cancel replacement' : 'Replace key' }}
+          {{ replaceKey ? t('prowlarr.cancelReplacement') : t('prowlarr.replaceKey') }}
         </button>
       </div>
       <label v-if="showKeyInput"
-        >{{ keyConfigured ? 'New API key' : 'API key'
+        >{{ keyConfigured ? t('prowlarr.newApiKey') : t('prowlarr.apiKey')
         }}<input v-model="form.apiKey" type="password" autocomplete="new-password" :disabled="busy"
       /></label>
       <label v-if="keyConfigured" class="check-row"
         ><input
           v-model="clearKey"
           type="checkbox"
-          aria-label="Clear saved API key"
+          :aria-label="t('prowlarr.clearKeyLabel')"
           :disabled="busy"
         />
-        Clear the saved API key on Save</label
+        {{ t('prowlarr.clearKey') }}</label
       >
       <label
-        >Indexer URL as seen by Prowlarr<input
+        >{{ t('prowlarr.indexerUrl')
+        }}<input
           v-model.trim="form.indexerUrl"
           type="url"
           placeholder="http://icvdb-torznab:8000/api"
           :disabled="busy"
       /></label>
       <p class="field-help">
-        This must be reachable from the Prowlarr container and end at the Torznab
-        <code>/api</code> endpoint.
+        {{ t('prowlarr.indexerHelp') }}
       </p>
       <div class="button-row">
         <button class="button button--prowlarr" type="button" :disabled="busy" @click="save">
-          {{ operation === 'save' ? 'Saving…' : 'Save Prowlarr settings' }}
+          {{ operation === 'save' ? t('common.saving') : t('prowlarr.save') }}
         </button>
         <button class="button button--secondary" type="button" :disabled="busy" @click="test">
-          {{ operation === 'test' ? 'Testing…' : 'Test connection' }}
+          {{ operation === 'test' ? t('prowlarr.testing') : t('prowlarr.test') }}
         </button>
         <button class="button button--prowlarr" type="button" :disabled="busy" @click="install">
-          {{ operation === 'install' ? 'Adding…' : 'Add ICVDB to Prowlarr' }}
+          {{ operation === 'install' ? t('prowlarr.adding') : t('prowlarr.add') }}
         </button>
       </div>
       <p v-if="success" role="status" class="success-message">{{ success }}</p>
-      <p v-if="failure || liveStatus?.error || store.state.error" role="alert" class="inline-error">
-        {{ failure || liveStatus?.error || store.state.error }}
+      <p v-if="displayedError" role="alert" class="inline-error">
+        {{ displayedError }}
       </p>
     </article>
   </section>

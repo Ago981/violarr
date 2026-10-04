@@ -3,11 +3,13 @@ import { computed, onMounted, ref, watch } from 'vue'
 import ToggleSwitch from '../components/ToggleSwitch.vue'
 import { useAppStore } from '../composables/appStore'
 import type { PublicSettings } from '../api/types'
+import { useLocale } from '../i18n'
 const props = defineProps<{
   settings?: PublicSettings
   saveSettings?: (settings: PublicSettings) => Promise<unknown>
 }>()
 const store = useAppStore()
+const { t } = useLocale()
 const enabled = ref(true)
 const interval = ref(86400)
 const localError = ref('')
@@ -35,7 +37,7 @@ const hours = computed({
 async function save() {
   localError.value = ''
   if (!Number.isFinite(interval.value) || interval.value < 60 || interval.value > 604800) {
-    localError.value = 'Interval must be between 1 minute and 7 days.'
+    localError.value = t('database.intervalError')
     return
   }
   if (!source.value || saving.value) return
@@ -56,18 +58,19 @@ async function save() {
   <section class="page">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">Settings</p>
-        <h1>Database updates</h1>
-        <p>Control automatic ICVDB snapshot checks.</p>
+        <p class="eyebrow">{{ t('common.settings') }}</p>
+        <h1>{{ t('database.title') }}</h1>
+        <p>{{ t('database.intro') }}</p>
       </div>
     </div>
     <article class="card form-card">
       <ToggleSwitch
         v-model="enabled"
-        label="Automatic snapshot updates"
-        description="Periodically check for and safely apply a newer database snapshot."
+        :label="t('database.automatic')"
+        :description="t('database.automaticDescription')"
       /><label
-        >Check interval (hours)<input
+        >{{ t('database.interval')
+        }}<input
           v-model.number="hours"
           type="number"
           min="0.0167"
@@ -75,7 +78,7 @@ async function save() {
           step="1"
           inputmode="decimal"
       /></label>
-      <p class="field-help">Accepted range: 1 minute to 7 days.</p>
+      <p class="field-help">{{ t('database.range') }}</p>
       <p v-if="localError || store.state.error" class="inline-error" role="alert">
         {{ localError || store.state.error }}
       </p>
@@ -83,7 +86,7 @@ async function save() {
         {{ store.state.feedback }}
       </p>
       <button class="button" type="button" :disabled="saving || store.state.saving" @click="save">
-        {{ saving || store.state.saving ? 'Saving…' : 'Save update settings' }}
+        {{ saving || store.state.saving ? t('common.saving') : t('database.save') }}
       </button>
     </article>
   </section>

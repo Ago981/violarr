@@ -527,7 +527,7 @@ def make_caps():
 
     server = SubElement(caps, "server")
     server.set("version", "1.0")
-    server.set("title", "ICVDB Local Indexer")
+    server.set("title", "Violarr")
 
     limits = SubElement(caps, "limits")
     limits.set("max", "200")
@@ -654,12 +654,12 @@ def make_rss(rows):
     SubElement(
         channel,
         "title",
-    ).text = "ICVDB Local Indexer"
+    ).text = "Violarr"
 
     SubElement(
         channel,
         "description",
-    ).text = "Local ICVDB Torznab indexer"
+    ).text = "L’integrazione Prowlarr per Il Corsaro Viola"
 
     SubElement(
         channel,

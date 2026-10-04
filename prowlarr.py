@@ -151,7 +151,7 @@ class ProwlarrClient:
         if missing:
             missing_name = sorted(missing)[0]
             raise ProwlarrError(f"Prowlarr Generic Torznab schema is missing {missing_name}")
-        resource["name"] = "ICVDB Torznab"
+        resource["name"] = "Violarr"
         return resource
 
     def _indexers(self) -> list[dict[str, Any]]:

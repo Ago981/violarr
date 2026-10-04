@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { api, ApiError } from '../api/client'
+import { api, apiErrorMessage } from '../api/client'
 import type {
   AppStatus,
   IndexerResult,
@@ -7,6 +7,9 @@ import type {
   PublicSettings,
   ResultProcessing,
 } from '../api/types'
+import { useLocale } from '../i18n'
+
+const { t } = useLocale()
 
 type ApiClient = Pick<
   typeof api,
@@ -20,9 +23,7 @@ type ApiClient = Pick<
 >
 
 function message(error: unknown) {
-  return error instanceof ApiError
-    ? error.message
-    : 'An unexpected error occurred. Please try again.'
+  return apiErrorMessage(error, t('error.unexpected'))
 }
 
 export function createAppStore(client: ApiClient = api) {
@@ -68,7 +69,7 @@ export function createAppStore(client: ApiClient = api) {
     state.feedback = null
     try {
       state.settings = await client.saveSettings(settings)
-      state.feedback = 'Settings saved.'
+      state.feedback = t('feedback.settingsSaved')
       state.status = await client.status()
       return state.settings
     } catch (error) {
@@ -86,7 +87,7 @@ export function createAppStore(client: ApiClient = api) {
     try {
       const saved = await client.saveResultProcessing(value)
       if (state.settings) state.settings.result_processing = saved
-      state.feedback = 'Result processing saved.'
+      state.feedback = t('feedback.resultsSaved')
       state.status = await client.status()
     } catch (error) {
       state.error = message(error)

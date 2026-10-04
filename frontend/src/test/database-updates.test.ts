@@ -1,9 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/vue'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DatabaseUpdatesView from '../views/DatabaseUpdatesView.vue'
+import { useLocale } from '../i18n'
 import { settingsFixture } from './fixtures'
 
 describe('database updates', () => {
+  beforeEach(() => useLocale().setLocale('en'))
   it('validates the interval and persists enabled state with seconds', async () => {
     const saveSettings = vi.fn().mockResolvedValue(undefined)
     render(DatabaseUpdatesView, { props: { settings: settingsFixture, saveSettings } })

@@ -37,6 +37,10 @@
   height: 36px;
   cursor: pointer;
 }
+.language-select select,
+.theme-select select {
+  max-width: 9rem;
+}
 .sidebar {
   position: fixed;
   z-index: 25;

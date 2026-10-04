@@ -31,6 +31,17 @@ def test_caps_contract_is_unchanged(client):
     assert root.find("searching/search").attrib["supportedParams"] == "q"
     assert root.find("searching/movie-search").attrib["supportedParams"] == "q,imdbid,tmdbid"
     assert root.find("searching/tv-search").attrib["supportedParams"] == "q,season,ep,imdbid"
+    assert root.find("server").attrib["title"] == "Violarr"
+
+
+def test_rss_channel_uses_violarr_branding(client, monkeypatch):
+    monkeypatch.setattr(app_module, "query_generic", lambda *args: [sample_row()])
+
+    response = client.get("/api", params={"t": "search", "q": "example"})
+
+    channel = ElementTree.fromstring(response.content).find("channel")
+    assert channel.findtext("title") == "Violarr"
+    assert channel.findtext("description") == "L’integrazione Prowlarr per Il Corsaro Viola"
 
 
 @pytest.mark.parametrize(

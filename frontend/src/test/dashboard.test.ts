@@ -1,9 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/vue'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DashboardView from '../views/DashboardView.vue'
+import { useLocale } from '../i18n'
 import { statusFixture } from './fixtures'
 
 describe('dashboard', () => {
+  beforeEach(() => useLocale().setLocale('en'))
   it('renders live service, snapshot, processing, and Prowlarr states', () => {
     render(DashboardView, {
       props: { status: statusFixture, loading: false, error: null },

@@ -115,7 +115,7 @@ def test_schema_is_deep_copied_and_named_fields_are_updated():
 
     resource = subject.build_indexer_resource()
 
-    assert resource["name"] == "ICVDB Torznab"
+    assert resource["name"] == "Violarr"
     assert resource["priority"] == 25
     assert resource["appProfileId"] == 1
     assert {field["name"]: field.get("value") for field in resource["fields"]} == {

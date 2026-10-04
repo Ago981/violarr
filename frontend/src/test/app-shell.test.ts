@@ -1,9 +1,14 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AppShell from '../components/AppShell.vue'
+import { LOCALE_STORAGE_KEY, useLocale } from '../i18n'
 
 describe('mobile application shell', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    useLocale().setLocale('it')
+  })
   it('traps focus, closes on Escape, returns focus, and focuses content after navigation', async () => {
     vi.stubGlobal(
       'matchMedia',
@@ -23,7 +28,7 @@ describe('mobile application shell', () => {
     await router.push('/')
     await router.isReady()
     render(AppShell, { global: { plugins: [router] } })
-    const menu = screen.getByRole('button', { name: 'Open navigation' })
+    const menu = screen.getByRole('button', { name: 'Apri navigazione' })
     await fireEvent.click(menu)
     const links = screen.getByRole('navigation').querySelectorAll('a')
     expect(document.activeElement).toBe(links[0])
@@ -39,8 +44,28 @@ describe('mobile application shell', () => {
     expect(document.activeElement).toBe(menu)
 
     await fireEvent.click(menu)
-    await fireEvent.click(screen.getByRole('link', { name: 'General' }))
+    await fireEvent.click(screen.getByRole('link', { name: 'Generali' }))
     await router.isReady()
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('main')))
+  })
+
+  it('starts in Italian and persists an accessible English selection', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+    )
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/', component: { template: '<p>Home</p>' } }],
+    })
+    await router.push('/')
+    await router.isReady()
+    render(AppShell, { global: { plugins: [router] } })
+
+    expect(screen.getByRole('link', { name: 'Panoramica' })).toBeTruthy()
+    await fireEvent.update(screen.getByRole('combobox', { name: 'Lingua' }), 'en')
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toBeTruthy()
+    expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('en')
+    expect(document.documentElement.lang).toBe('en')
   })
 })

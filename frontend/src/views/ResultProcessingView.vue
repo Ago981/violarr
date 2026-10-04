@@ -10,9 +10,11 @@ import type {
 } from '../api/types'
 import { useAppStore } from '../composables/appStore'
 import ToggleSwitch from '../components/ToggleSwitch.vue'
+import { useLocale } from '../i18n'
 const props = defineProps<{ initial?: ResultProcessing; saving?: boolean }>()
 const emit = defineEmits<{ save: [value: ResultProcessing] }>()
 const store = useAppStore()
+const { t } = useLocale()
 const errors = reactive<string[]>([])
 onMounted(() => {
   if (props.initial === undefined) store.loadAll()
@@ -29,35 +31,35 @@ watch(
   },
   { immediate: true },
 )
-const presetOptions: { value: Preset; title: string; text: string }[] = [
+const presetOptions = computed<{ value: Preset; title: string; text: string }[]>(() => [
   {
     value: 'unfiltered',
-    title: 'Unfiltered',
-    text: 'Preserve the original ICVDB order and include every result.',
+    title: t('preset.unfiltered'),
+    text: t('results.unfilteredText'),
   },
   {
     value: 'italian_preferred',
-    title: 'Italian preferred',
-    text: 'Rank likely Italian releases first without removing fallback results.',
+    title: t('preset.italianPreferred'),
+    text: t('results.preferredText'),
   },
   {
     value: 'italian_only',
-    title: 'Italian only',
-    text: 'Hard filter results without an explicit Italian marker.',
+    title: t('preset.italianOnly'),
+    text: t('results.onlyText'),
   },
-  { value: 'custom', title: 'Custom', text: 'Apply your ordered score and exclusion rules.' },
-]
+  { value: 'custom', title: t('preset.custom'), text: t('results.customText') },
+])
 const operators = (field: RuleField): { value: RuleOperator; label: string }[] =>
   field === 'title' || field === 'provider'
     ? [
-        { value: 'contains', label: 'contains' },
-        { value: 'not_contains', label: 'does not contain' },
-        { value: 'equals', label: 'equals' },
+        { value: 'contains', label: t('results.contains') },
+        { value: 'not_contains', label: t('results.notContains') },
+        { value: 'equals', label: t('results.equals') },
       ]
     : [
-        { value: 'equals', label: 'equals' },
-        { value: 'gte', label: 'at least' },
-        { value: 'lte', label: 'at most' },
+        { value: 'equals', label: t('results.equals') },
+        { value: 'gte', label: t('results.atLeast') },
+        { value: 'lte', label: t('results.atMost') },
       ]
 function addRule() {
   if (model.custom_rules.length < 100)
@@ -85,14 +87,14 @@ function validate() {
       !numeric &&
       (typeof rule.value !== 'string' || !rule.value.trim() || rule.value.length > 512)
     )
-      errors.push(`Rule ${index + 1} needs a text value up to 512 characters.`)
+      errors.push(t('results.textError', { number: index + 1 }))
     if (numeric && (typeof rule.value !== 'number' || !Number.isFinite(rule.value)))
-      errors.push(`Rule ${index + 1} needs a finite number.`)
+      errors.push(t('results.numberError', { number: index + 1 }))
     if (
       rule.action === 'score' &&
       (!Number.isFinite(rule.score) || Math.abs(rule.score ?? 1001) > 1000)
     )
-      errors.push(`Rule ${index + 1} score must be between -1000 and 1000.`)
+      errors.push(t('results.scoreError', { number: index + 1 }))
   })
   return !errors.length
 }
@@ -108,12 +110,12 @@ const isSaving = computed(() => props.saving ?? store.state.saving)
   <section class="page">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">Settings</p>
-        <h1>Result processing</h1>
-        <p>Choose ranking behavior or apply bounded structured rules.</p>
+        <p class="eyebrow">{{ t('common.settings') }}</p>
+        <h1>{{ t('results.title') }}</h1>
+        <p>{{ t('results.intro') }}</p>
       </div>
     </div>
-    <div class="preset-grid" role="radiogroup" aria-label="Result processing preset">
+    <div class="preset-grid" role="radiogroup" :aria-label="t('results.presetLabel')">
       <label
         v-for="option in presetOptions"
         :key="option.value"
@@ -132,17 +134,14 @@ const isSaving = computed(() => props.saving ?? store.state.saving)
       >
     </div>
     <div class="notice">
-      <strong>Ranking versus hard filtering</strong>
-      <p>
-        Score rules and Italian preferred reorder matching results. Exclude rules and Italian only
-        remove results entirely.
-      </p>
+      <strong>{{ t('results.rankingTitle') }}</strong>
+      <p>{{ t('results.rankingText') }}</p>
     </div>
     <article v-if="model.preset === 'custom'" class="card rules-card">
       <div class="card-heading">
         <div>
-          <h2>Custom rules</h2>
-          <p>Rules run in order. Disabled rules are saved but ignored.</p>
+          <h2>{{ t('results.customRules') }}</h2>
+          <p>{{ t('results.rulesDescription') }}</p>
         </div>
         <button
           class="button button--secondary"
@@ -150,26 +149,34 @@ const isSaving = computed(() => props.saving ?? store.state.saving)
           :disabled="model.custom_rules.length >= 100"
           @click="addRule"
         >
-          Add rule
+          {{ t('results.addRule') }}
         </button>
       </div>
-      <p v-if="!model.custom_rules.length" class="empty-state">No custom rules yet.</p>
+      <p v-if="!model.custom_rules.length" class="empty-state">{{ t('results.noRules') }}</p>
       <fieldset v-for="(rule, index) in model.custom_rules" :key="index" class="rule">
-        <legend>Rule {{ index + 1 }}</legend>
+        <legend>{{ t('results.rule', { number: index + 1 }) }}</legend>
         <div class="rule-grid">
-          <ToggleSwitch v-model="rule.enabled" :label="`Rule ${index + 1} enabled`" /><label
-            >Field<select
+          <ToggleSwitch
+            v-model="rule.enabled"
+            :label="t('results.ruleEnabled', { number: index + 1 })"
+          /><label
+            >{{ t('results.field')
+            }}<select
               v-model="rule.field"
-              :aria-label="`Rule ${index + 1} field`"
+              :aria-label="`${t('results.rule', { number: index + 1 })} ${t('results.field')}`"
               @change="fieldChanged(rule)"
             >
-              <option value="title">Title</option>
-              <option value="provider">Provider</option>
-              <option value="size">Size</option>
-              <option value="seeders">Seeders</option>
+              <option value="title">{{ t('results.titleField') }}</option>
+              <option value="provider">{{ t('results.provider') }}</option>
+              <option value="size">{{ t('results.size') }}</option>
+              <option value="seeders">{{ t('results.seeders') }}</option>
             </select></label
           ><label
-            >Operator<select v-model="rule.operator" :aria-label="`Rule ${index + 1} operator`">
+            >{{ t('results.operator')
+            }}<select
+              v-model="rule.operator"
+              :aria-label="`${t('results.rule', { number: index + 1 })} ${t('results.operator')}`"
+            >
               <option
                 v-for="operator in operators(rule.field)"
                 :key="operator.value"
@@ -179,41 +186,44 @@ const isSaving = computed(() => props.saving ?? store.state.saving)
               </option>
             </select></label
           ><label
-            >Value<input
+            >{{ t('results.value')
+            }}<input
               v-if="rule.field === 'size' || rule.field === 'seeders'"
               v-model.number="rule.value"
               type="number"
-              :aria-label="`Rule ${index + 1} value`" /><input
+              :aria-label="`${t('results.rule', { number: index + 1 })} ${t('results.value')}`" /><input
               v-else
               v-model="rule.value"
               type="text"
               maxlength="512"
-              :aria-label="`Rule ${index + 1} value`" /></label
+              :aria-label="`${t('results.rule', { number: index + 1 })} ${t('results.value')}`" /></label
           ><label
-            >Action<select
+            >{{ t('results.action')
+            }}<select
               v-model="rule.action"
-              :aria-label="`Rule ${index + 1} action`"
+              :aria-label="`${t('results.rule', { number: index + 1 })} ${t('results.action')}`"
               @change="actionChanged(rule)"
             >
-              <option value="exclude">Exclude</option>
-              <option value="score">Adjust score</option>
+              <option value="exclude">{{ t('results.exclude') }}</option>
+              <option value="score">{{ t('results.adjustScore') }}</option>
             </select></label
           ><label v-if="rule.action === 'score'"
-            >Score<input
+            >{{ t('results.score')
+            }}<input
               v-model.number="rule.score"
               type="number"
               min="-1000"
               max="1000"
-              :aria-label="`Rule ${index + 1} score`"
+              :aria-label="`${t('results.rule', { number: index + 1 })} ${t('results.score')}`"
           /></label>
         </div>
         <button
           class="text-button danger-text"
           type="button"
-          :aria-label="`Remove rule ${index + 1}`"
+          :aria-label="t('results.removeRule', { number: index + 1 })"
           @click="model.custom_rules.splice(index, 1)"
         >
-          Remove rule
+          {{ t('results.remove') }}
         </button>
       </fieldset>
     </article>
@@ -225,7 +235,7 @@ const isSaving = computed(() => props.saving ?? store.state.saving)
       {{ store.state.feedback }}
     </p>
     <button class="button" type="button" :disabled="isSaving" @click="submit">
-      {{ isSaving ? 'Saving…' : 'Save result processing' }}
+      {{ isSaving ? t('common.saving') : t('results.save') }}
     </button>
   </section>
 </template>

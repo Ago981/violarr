@@ -5,11 +5,15 @@ import type {
   PublicSettings,
   ResultProcessing,
 } from './types'
+import { useLocale } from '../i18n'
+
+const { t } = useLocale()
 
 export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number | null = null,
+    readonly source: 'client' | 'server' = 'client',
   ) {
     super(message)
     this.name = 'ApiError'
@@ -36,11 +40,11 @@ export async function requestJson<T>(path: string, init?: RequestInit): Promise<
       signal: controller.signal,
     })
   } catch (error) {
-    if (timedOut) throw new ApiError('The request timed out. Please try again.')
+    if (timedOut) throw new ApiError(t('error.timeout'))
     if (init?.signal?.aborted || (error instanceof DOMException && error.name === 'AbortError')) {
-      throw new ApiError('The request was canceled.')
+      throw new ApiError(t('error.canceled'))
     }
-    throw new ApiError('The service could not be reached. Check that it is running and try again.')
+    throw new ApiError(t('error.unreachable'))
   } finally {
     clearTimeout(timeout)
     init?.signal?.removeEventListener('abort', forwardAbort)
@@ -53,13 +57,18 @@ export async function requestJson<T>(path: string, init?: RequestInit): Promise<
     } catch {
       detail = null
     }
-    const message =
-      typeof detail === 'string' && detail.trim()
-        ? detail
-        : `Request failed (${response.status}). Please try again.`
-    throw new ApiError(message, response.status)
+    const serverDetail = typeof detail === 'string' && detail.trim() ? detail : null
+    const message = serverDetail ?? t('error.requestFailed', { status: response.status })
+    throw new ApiError(message, response.status, serverDetail ? 'server' : 'client')
   }
   return response.json() as Promise<T>
+}
+
+export function apiErrorMessage(error: unknown, fallback: string) {
+  if (!(error instanceof ApiError)) return fallback
+  return error.source === 'server'
+    ? useLocale().localizeServerMessage(error.message, fallback)
+    : error.message
 }
 
 const json = (body: unknown): RequestInit => ({ method: 'PUT', body: JSON.stringify(body) })

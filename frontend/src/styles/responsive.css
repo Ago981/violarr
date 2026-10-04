@@ -39,6 +39,10 @@
   .brand span:last-child {
     display: none;
   }
+  .language-select select,
+  .theme-select select {
+    max-width: 6.5rem;
+  }
   .main {
     padding-inline: 10px;
   }

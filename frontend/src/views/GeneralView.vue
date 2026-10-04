@@ -1,28 +1,28 @@
+<script setup lang="ts">
+import { useLocale } from '../i18n'
+
+const { t } = useLocale()
+</script>
 <template>
   <section class="page">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">Settings</p>
-        <h1>General</h1>
-        <p>Application identity and network posture.</p>
+        <p class="eyebrow">{{ t('common.settings') }}</p>
+        <h1>{{ t('general.title') }}</h1>
+        <p>{{ t('general.intro') }}</p>
       </div>
     </div>
     <article class="card prose">
-      <h2>ICVDB Torznab</h2>
-      <p>
-        This service is a thin, read-only bridge between your local ICVDB PostgreSQL snapshot and
-        Torznab clients.
-      </p>
+      <h2>Violarr</h2>
+      <p>{{ t('app.subtitle') }}</p>
+      <p>{{ t('general.description') }}</p>
       <div class="notice">
-        <strong>Designed for a trusted LAN</strong>
-        <p>
-          The WebUI has no built-in authentication. Do not expose it directly to the public
-          internet.
-        </p>
+        <strong>{{ t('general.trustedLan') }}</strong>
+        <p>{{ t('general.security') }}</p>
       </div>
       <dl class="detail-list">
         <div>
-          <dt>Main Torznab endpoint</dt>
+          <dt>{{ t('general.mainEndpoint') }}</dt>
           <dd><code>/api</code></dd>
         </div>
         <div>
@@ -30,8 +30,8 @@
           <dd><code>/webapi</code></dd>
         </div>
         <div>
-          <dt>Configuration</dt>
-          <dd>Persisted under the service data volume</dd>
+          <dt>{{ t('general.configuration') }}</dt>
+          <dd>{{ t('general.persisted') }}</dd>
         </div>
       </dl>
     </article>
