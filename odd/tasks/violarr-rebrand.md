@@ -151,7 +151,7 @@ Evidence:
 - VitePress uses `/violarr/`, Italian root, English `/en/`, and locale-specific header, sidebar, outline, and previous/next labels.
 - Fixed 23 malformed custom containers whose inline markers captured later page content and disrupted pagination flow.
 - Final `format:check` and VitePress production build passed; rendered Italian and English pages show correct navigation, sidebar, callout boundaries, and previous/next controls.
-- Work-unit commit: pending.
+- Work-unit commit: `41fffa7` (`docs: add bilingual Violarr guide`).
 
 ### VIO-04 — GitHub repository transition and final bounded verification
 
@@ -199,4 +199,4 @@ Evidence: pending.
 
 ## Next step
 
-Commit VIO-03 as one coherent documentation work unit, then perform VIO-04.
+Perform VIO-04: rename the GitHub repository, update `origin`, run the bounded integration check, and push the feature branch.

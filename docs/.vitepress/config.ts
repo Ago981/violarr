@@ -116,6 +116,19 @@ export default defineConfig({
     root: {
       label: 'Italiano',
       lang: 'it-IT',
+      markdown: {
+        container: {
+          infoLabel: 'Informazione',
+          tipLabel: 'Suggerimento',
+          warningLabel: 'Attenzione',
+          dangerLabel: 'Pericolo',
+          detailsLabel: 'Dettagli',
+        },
+        codeCopyButton: {
+          tooltipText: 'Copia codice',
+          copiedText: 'Codice copiato',
+        },
+      },
       themeConfig: {
         siteTitle: 'Violarr',
         nav: [
@@ -135,6 +148,20 @@ export default defineConfig({
         sidebar: italianSidebar,
         outline: { label: 'In questa pagina' },
         docFooter: { prev: 'Pagina precedente', next: 'Pagina successiva' },
+        lastUpdated: { text: 'Ultimo aggiornamento' },
+        darkModeSwitchLabel: 'Aspetto',
+        lightModeSwitchTitle: 'Passa al tema chiaro',
+        darkModeSwitchTitle: 'Passa al tema scuro',
+        sidebarMenuLabel: 'Menu',
+        returnToTopLabel: 'Torna in cima',
+        langMenuLabel: 'Cambia lingua',
+        skipToContentLabel: 'Vai al contenuto',
+        notFound: {
+          title: 'PAGINA NON TROVATA',
+          quote: 'La pagina richiesta non esiste o è stata spostata.',
+          linkLabel: 'vai alla pagina iniziale',
+          linkText: 'Torna alla pagina iniziale',
+        },
         editLink: {
           pattern: 'https://github.com/xbit18/violarr/edit/main/docs/:path',
           text: 'Modifica questa pagina su GitHub',
@@ -185,6 +212,35 @@ export default defineConfig({
     socialLinks: [
       { icon: 'github', link: 'https://github.com/xbit18/violarr' },
     ],
-    search: { provider: 'local' },
+    search: {
+      provider: 'local',
+      options: {
+        locales: {
+          root: {
+            translations: {
+              button: {
+                buttonText: 'Cerca',
+                buttonAriaLabel: 'Cerca',
+              },
+              modal: {
+                displayDetails: 'Mostra dettagli',
+                resetButtonTitle: 'Reimposta ricerca',
+                backButtonTitle: 'Chiudi ricerca',
+                noResultsText: 'Nessun risultato trovato',
+                footer: {
+                  selectText: 'Seleziona',
+                  selectKeyAriaLabel: 'Invio',
+                  navigateText: 'Naviga',
+                  navigateUpKeyAriaLabel: 'Freccia su',
+                  navigateDownKeyAriaLabel: 'Freccia giù',
+                  closeText: 'Chiudi',
+                  closeKeyAriaLabel: 'Esc',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 })
