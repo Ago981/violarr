@@ -155,11 +155,11 @@ Evidence:
 
 ### VIO-04 — GitHub repository transition and final bounded verification
 
-- [ ] Rename `xbit18/icvdb-torznab` to `xbit18/violarr` using the authorized active GitHub session.
-- [ ] Update local `origin` to `https://github.com/xbit18/violarr.git`.
+- [x] Rename `xbit18/icvdb-torznab` to `xbit18/violarr` using the authorized active GitHub session.
+- [x] Update local `origin` to `https://github.com/xbit18/violarr.git`.
 - [ ] Push the authorized feature branch only.
-- [ ] Confirm repository identity and exact Pages-ready URLs once.
-- [ ] Run one final bounded verification covering Python, frontend, docs, Compose, image build, capabilities, and a real database search.
+- [x] Confirm repository identity and exact Pages-ready URLs once.
+- [x] Run one final bounded verification covering Python, frontend, docs, Compose, image build, capabilities, and a real database search.
 
 Route: delegated verification plus parent-owned remote state operations. Trigger: full suites/builds belong to fresh workers; GitHub state remains parent-owned.
 
@@ -186,7 +186,14 @@ curl -fsS 'http://localhost:8000/api?t=caps'
 curl -fsS 'http://localhost:8000/api?t=search&q=avatar'
 ```
 
-Evidence: pending.
+Evidence:
+
+- GitHub reports `xbit18/violarr` at `https://github.com/xbit18/violarr`; local fetch and push remotes use `https://github.com/xbit18/violarr.git`.
+- VitePress remains configured for `https://xbit18.github.io/violarr/`; deployment still requires the documentation commit to reach `main`.
+- Python suite passed 99 tests in an isolated `uv` environment; the direct interpreter lacked pytest and the first isolated run lacked the `httpx` test dependency.
+- Frontend formatting, type checking, 23 tests, and production build passed; documentation formatting and production build passed.
+- Compose configuration resolved `ghcr.io/xbit18/violarr:latest`; the image built locally, the container started, caps returned `<caps>`, and an `avatar` search returned populated Torznab RSS from PostgreSQL.
+- Verification left the tracked worktree clean. No release, tag, pull request, or merge was created.
 
 ## Progress
 
@@ -199,4 +206,4 @@ Evidence: pending.
 
 ## Next step
 
-Perform VIO-04: rename the GitHub repository, update `origin`, run the bounded integration check, and push the feature branch.
+Push the authorized feature branch, then record the final remote evidence and close VIO-04.
