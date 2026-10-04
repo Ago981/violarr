@@ -40,14 +40,6 @@ library.
 2. Open the WebUI at `http://localhost:8000`.
 3. [Connect Prowlarr](/en/configuration/prowlarr).
 
-::: warning v1.1.0 release status
-
-The WebUI and configuration features documented here are pending the v1.1.0
-release. The implementation is present in the project, but publication of the
-release image and Docker runtime verification are not yet complete.
-
-:::
-
 ::: danger Network exposure
 
 The application has no authentication. Keep port `8000` on a trusted network or

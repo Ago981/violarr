@@ -45,5 +45,4 @@ v1.1 keeps the same PostgreSQL 16 data path, snapshot state file, image port,
 and `/data` volume contract. On first v1.1 startup, the settings store creates
 `/data/state/settings.json` with defaults while reusing existing database data.
 
-The upgrade path is designed for backward compatibility, but end-to-end Docker
-verification with an actual v1.0 volume is still pending.
+The existing snapshot state remains unchanged.

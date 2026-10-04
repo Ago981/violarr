@@ -10,8 +10,8 @@ docker logs -f icvdb-torznab
 
 - Verifica che la porta `8000` sia pubblicata.
 - Esegui `curl 'http://localhost:8000/api?t=caps'`.
-- L'immagine pubblica `latest` potrebbe restare v1.0 fino alla pubblicazione di
-  v1.1.0; v1.0 non include la WebUI.
+- Verifica che il container usi `ghcr.io/xbit18/violarr:latest` e ricrealo dopo
+  aver scaricato l'immagine aggiornata.
 - Un checkout dei sorgenti deve compilare gli asset frontend prima che FastAPI
   possa servirli.
 

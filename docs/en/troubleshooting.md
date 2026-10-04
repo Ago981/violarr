@@ -10,8 +10,8 @@ docker logs -f icvdb-torznab
 
 - Confirm port `8000` is published.
 - Check `curl 'http://localhost:8000/api?t=caps'`.
-- The public `latest` image may still be v1.0 until v1.1.0 is published; v1.0
-  has no WebUI.
+- Confirm the container uses `ghcr.io/xbit18/violarr:latest` and recreate it
+  after pulling the updated image.
 - A source checkout must build frontend assets before FastAPI can serve them.
 
 ## First start takes a long time

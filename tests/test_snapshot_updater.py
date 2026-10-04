@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import io
 import json
 from datetime import datetime, timezone
 import threading
@@ -13,6 +15,38 @@ from snapshot_updater import Snapshot, SnapshotUpdater, install_snapshot_updater
 
 def make_store(tmp_path, environ=None):
     return SettingsStore(path=tmp_path / "settings.json", environ=environ or {})
+
+
+def test_snapshot_requests_use_versioned_violarr_user_agent(tmp_path, monkeypatch):
+    metadata = {
+        "tag_name": "db-2026-10-05",
+        "assets": [
+            {
+                "name": "snapshot.dump",
+                "browser_download_url": "https://example/snapshot.dump",
+                "digest": f"sha256:{hashlib.sha256(b'dump').hexdigest()}",
+            }
+        ],
+    }
+    responses = [json.dumps(metadata).encode(), b"dump"]
+    requests = []
+
+    def urlopen(request, timeout):
+        requests.append(request)
+        return io.BytesIO(responses.pop(0))
+
+    monkeypatch.setattr("snapshot_updater.urlopen", urlopen)
+    monkeypatch.setattr("snapshot_updater.subprocess.run", lambda *args, **kwargs: None)
+    updater = SnapshotUpdater(settings_store=make_store(tmp_path))
+
+    snapshot = updater.get_latest_snapshot()
+    path = updater.download_snapshot(snapshot)
+    path.unlink()
+
+    assert [request.get_header("User-agent") for request in requests] == [
+        "Violarr/1.1.0",
+        "Violarr/1.1.0",
+    ]
 
 
 def test_updater_reads_effective_store_settings_and_runtime_reconfigure(tmp_path):

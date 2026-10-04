@@ -21,6 +21,7 @@ LATEST_RELEASE_URL = os.getenv(
     "SNAPSHOT_LATEST_URL",
     "https://api.github.com/repos/xbit18/icvdb-snapshots/releases/latest",
 )
+SNAPSHOT_USER_AGENT = "Violarr/1.1.0"
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -159,7 +160,7 @@ class SnapshotUpdater:
             LATEST_RELEASE_URL,
             headers={
                 "Accept": "application/vnd.github+json",
-                "User-Agent": "icvdb-torznab",
+                "User-Agent": SNAPSHOT_USER_AGENT,
             },
         )
 
@@ -244,7 +245,7 @@ class SnapshotUpdater:
 
         request = Request(
             snapshot.url,
-            headers={"User-Agent": "icvdb-torznab"},
+            headers={"User-Agent": SNAPSHOT_USER_AGENT},
         )
 
         try:

@@ -23,13 +23,6 @@ When the service is ready:
 - Torznab: `http://localhost:8000/api`
 - WebAPI: `http://localhost:8000/webapi`
 
-::: warning Unreleased v1.1.0
-
-The current public `latest` image may still represent v1.0 until v1.1.0 is
-published. v1.0 continues to provide `/api`, but not the v1.1 WebUI and WebAPI.
-
-:::
-
 ## Persistent data
 
 Mount exactly one volume at `/data`. It holds the PostgreSQL cluster and state

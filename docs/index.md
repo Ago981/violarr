@@ -38,14 +38,6 @@ multimediali.
 2. Apri la WebUI su `http://localhost:8000`.
 3. [Collega Prowlarr](/configuration/prowlarr).
 
-::: warning Stato della release v1.1.0
-
-Le funzionalità WebUI e di configurazione descritte qui attendono la release
-v1.1.0. L'implementazione è nel progetto, ma l'immagine non è stata pubblicata e
-la verifica Docker non è completa.
-
-:::
-
 ::: danger Esposizione di rete
 
 L'applicazione non ha autenticazione. Mantieni la porta `8000` su una rete

@@ -44,5 +44,5 @@ WebUI.
 
 v1.1 mantiene percorso dati PostgreSQL 16, file di stato, porta e contratto del
 volume `/data`. Al primo avvio crea `/data/state/settings.json` con i valori
-predefiniti e riutilizza il database esistente. La verifica Docker end-to-end
-con un volume v1.0 reale è ancora in sospeso.
+predefiniti e riutilizza il database esistente senza modificare lo stato degli
+snapshot.

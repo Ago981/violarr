@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased — v1.1.0
+## v1.1.0 — 2026-10-05
 
-The pending v1.1.0 work adds:
+v1.1.0 adds:
 
 - persistent schema-v1 WebUI settings with masked Prowlarr secrets;
 - deterministic result-processing presets and custom rules;
@@ -10,10 +10,9 @@ The pending v1.1.0 work adds:
 - a Vue WebUI served from the single runtime container;
 - this bilingual Markdown-first documentation site.
 
-The release image has not been published and Docker runtime verification is not
-complete. See the repository
+See the repository
 [`CHANGELOG.md`](https://github.com/xbit18/violarr/blob/main/CHANGELOG.md) for
-compatibility details and the authoritative project history.
+compatibility details and the complete project history.
 
 ## v1.0 behavior retained
 

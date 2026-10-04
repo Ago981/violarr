@@ -62,9 +62,8 @@ bootstrap latest snapshot when no installed state exists
 start FastAPI and the periodic updater
 ```
 
-The runtime integration is implemented, but image build, container smoke,
-persistence restart, and real v1.0-volume upgrade verification remain pending on
-a Docker-capable host.
+The runtime integration has been validated with a local image build, container
+startup, capabilities request, and a real PostgreSQL-backed search.
 
 ## Request flows
 
@@ -215,7 +214,6 @@ existing volumes, configuration, automation, and Prowlarr URLs. An existing
 v1.0 volume should be reused directly; v1.1 adds `settings.json` with defaults
 on first access.
 
-Never remove the volume during an application-image upgrade. Full Docker-based
-upgrade verification remains a release-readiness task, so this compatibility
-claim reflects the preserved implementation invariants rather than a completed
-runtime certification.
+Never remove the volume during an application-image upgrade. The compatibility
+contract follows the preserved implementation invariants and is covered by
+container contract tests.

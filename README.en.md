@@ -7,10 +7,6 @@ from an ICVDB PostgreSQL snapshot to Torznab clients such as Prowlarr. One
 container runs PostgreSQL 16, FastAPI, the WebUI, and safe automatic database
 updates.
 
-> **v1.1.0 status:** the WebUI and configuration work documented below is
-> currently unreleased. The implementation is in the project, but the release
-> image has not been published and Docker runtime verification is still pending.
-
 ## Features
 
 - Torznab searches for movies, TV, and anime
@@ -37,9 +33,8 @@ Follow first-start progress:
 docker logs -f icvdb-torznab
 ```
 
-After a v1.1-capable image starts, open the WebUI at
-`http://localhost:8000/`. The Torznab endpoint remains
-`http://localhost:8000/api`.
+When the service is ready, open the WebUI at `http://localhost:8000/`. The
+Torznab endpoint remains `http://localhost:8000/api`.
 
 The first start initializes PostgreSQL, downloads the latest snapshot from
 [`xbit18/icvdb-snapshots`](https://github.com/xbit18/icvdb-snapshots), verifies

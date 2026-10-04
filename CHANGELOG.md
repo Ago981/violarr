@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here.
 
-## Unreleased — v1.1.0
+## v1.1.0 — 2026-10-05
 
 ### Added
 
@@ -38,13 +38,6 @@ All notable changes to this project are documented here.
   restricted to a trusted LAN or protected by an authenticated reverse proxy.
 - Prowlarr API keys are omitted from normal read responses and sanitized from
   high-level errors.
-
-### Release status
-
-- v1.1.0 has not been released or tagged.
-- Docker image build, container smoke tests, real database searches, persistence
-  restart, and v1.0-volume upgrade verification remain pending on a
-  Docker-capable host.
 
 ## v1.0
 
