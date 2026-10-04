@@ -6,6 +6,8 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- Rebranded the public product, repository metadata, package metadata, and
+  primary container image as Violarr.
 - Persistent schema-v1 settings at `/data/state/settings.json`, including atomic
   writes, environment precedence, validation, and masked Prowlarr secrets.
 - Result-processing presets for unfiltered, Italian-preferred, Italian-only, and
@@ -18,6 +20,11 @@ All notable changes to this project are documented here.
 
 ### Compatibility
 
+- Publishes the Violarr image at `ghcr.io/xbit18/violarr`.
+- Keeps the Compose service/container alias `icvdb-torznab`, named volume
+  `icvdb_torznab_data`, `/data` paths, schema version 1, `ICVDB_*` and `DB_*`
+  environment variables, `/api` and `/webapi`, and snapshot repository
+  `xbit18/icvdb-snapshots` unchanged.
 - Preserves the v1.0 `/api` Torznab operations, parameters, categories,
   pagination defaults, and XML mapping.
 - Preserves PostgreSQL 16, port `8000`, the single `/data` volume, snapshot

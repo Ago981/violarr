@@ -11,8 +11,9 @@ RUN npm run build
 
 FROM debian:bookworm-slim
 
-LABEL org.opencontainers.image.source="https://github.com/xbit18/icvdb-torznab"
-LABEL org.opencontainers.image.description="Indexer Torznab self-hosted per ICVDB con PostgreSQL e aggiornamenti automatici del database"
+LABEL org.opencontainers.image.title="Violarr"
+LABEL org.opencontainers.image.source="https://github.com/xbit18/violarr"
+LABEL org.opencontainers.image.description="Violarr, a self-hosted Torznab indexer for ICVDB with PostgreSQL and automatic database updates"
 LABEL org.opencontainers.image.licenses="MIT"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

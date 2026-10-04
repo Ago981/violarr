@@ -1,6 +1,6 @@
 # Architecture
 
-ICVDB Torznab is a thin, single-container adapter between an ICVDB PostgreSQL
+Violarr is a thin, single-container adapter between an ICVDB PostgreSQL
 snapshot and Torznab-compatible clients. v1.1 adds a WebUI and persistent
 configuration without changing the v1.0 runtime boundary.
 
@@ -8,7 +8,7 @@ configuration without changing the v1.0 runtime boundary.
 
 ```text
 ┌──────────────────────────────────────────────────────────┐
-│ icvdb-torznab container                                  │
+│ Violarr container (operational alias: icvdb-torznab)     │
 │                                                          │
 │  :8000 FastAPI                                           │
 │    ├── /         Vue WebUI                               │
@@ -102,7 +102,7 @@ in-process summary.
 
 The client sends `X-Api-Key` to Prowlarr. It reads
 `/api/v1/indexer/schema`, selects the Generic Torznab `Torznab` implementation,
-deep-clones the schema resource, names it `ICVDB Torznab`, and fills `baseUrl`,
+deep-clones the schema resource, names it `Violarr`, and fills `baseUrl`,
 `apiPath`, and the blank Torznab `apiKey` field. Add checks existing Torznab
 resources by normalized origin/path before asking Prowlarr to test and create the
 resource, making repeated requests idempotent.
@@ -203,10 +203,17 @@ modify the active database.
 
 ## Upgrade compatibility
 
-v1.1 preserves the v1.0 image port, PostgreSQL 16 cluster location, `/data`
-volume, snapshot-version state, bootstrap/update model, Torznab route, and XML
-contract. An existing v1.0 volume should be reused directly; v1.1 adds
-`settings.json` with defaults on first access.
+The published image is `ghcr.io/xbit18/violarr`.
+
+v1.1 preserves the v1.0 Compose service and container name `icvdb-torznab`,
+named volume `icvdb_torznab_data`, image port, PostgreSQL 16 cluster location,
+`/data` volume, `/data/state/settings.json`, schema version 1, `ICVDB_*` and
+`DB_*` environment variables, `/api` and `/webapi` routes, snapshot-version
+state, snapshot source `xbit18/icvdb-snapshots`, bootstrap/update model, and XML
+contract. These legacy technical identifiers intentionally remain stable for
+existing volumes, configuration, automation, and Prowlarr URLs. An existing
+v1.0 volume should be reused directly; v1.1 adds `settings.json` with defaults
+on first access.
 
 Never remove the volume during an application-image upgrade. Full Docker-based
 upgrade verification remains a release-readiness task, so this compatibility

@@ -21,7 +21,7 @@ The current public identity (`icvdb-torznab`) describes the implementation rathe
 - Make VitePress Italian-first with an English mirror under `/en/`.
 - Make `README.md` Italian-first and provide `README.en.md`.
 - Rename `xbit18/icvdb-torznab` to `xbit18/violarr`, update links, Pages base, local origin, and the authorized feature branch.
-- Preserve the old GHCR image name through an explicit compatibility policy rather than assuming registry redirects.
+- Publish only `ghcr.io/xbit18/violarr`; do not retain a legacy GHCR publishing alias.
 
 ## Compatibility constraints
 
@@ -86,22 +86,22 @@ Evidence:
 - Backend branding regressions: 28 tests passed in one isolated `uv` environment.
 - Independent verification found and closed one localization-boundary issue for server-origin errors.
 - RDD: globally disabled. Native risk assessment was unassessable because authorized untracked files required declaration; independent verification was used conservatively.
-- Work-unit commit: pending.
+- Work-unit commit: `e979460` (`feat(webui): add Violarr localization`).
 
 ### VIO-02 — Distribution metadata and compatibility
 
-- [ ] Update package and image metadata to Violarr.
-- [ ] Keep stable volume, paths, environment variables, routes, snapshot source, and operational aliases.
-- [ ] Define explicit old/new GHCR publishing compatibility.
-- [ ] Update architecture, changelog, and agent guidance where public names changed.
-- [ ] Strengthen container contract tests for preserved identifiers.
+- [x] Update package and image metadata to Violarr.
+- [x] Keep stable volume, paths, environment variables, routes, snapshot source, and operational aliases.
+- [x] Publish only the new Violarr GHCR image.
+- [x] Update architecture, changelog, and agent guidance where public names changed.
+- [x] Strengthen container contract tests for preserved identifiers.
 
 Route: delegated. Trigger: coordinated multi-file metadata and compatibility edits.
 
 Acceptance:
 
 - Existing v1.0 data and configuration contracts are unchanged.
-- Future publishing can expose `ghcr.io/xbit18/violarr` without silently breaking the former image path.
+- Future publishing exposes only `ghcr.io/xbit18/violarr`.
 - Snapshot updater still uses `xbit18/icvdb-snapshots`.
 
 Checks:
@@ -111,7 +111,14 @@ python -m pytest tests/test_container_contract.py tests/test_webapi.py tests/tes
 docker compose config
 ```
 
-Evidence: pending.
+Evidence:
+
+- Observed RED: OCI metadata contract failed before the Violarr title was added.
+- Observed GREEN: 37 focused Python tests passed; independent container-contract verification passed 11 tests.
+- `docker compose config` resolved `ghcr.io/xbit18/violarr:latest` while retaining service/container `icvdb-torznab`, `/data`, and volume `icvdb_torznab_data`.
+- Release workflow uses one metadata/build path for only `ghcr.io/xbit18/violarr`, with least-privilege permissions and no shell steps.
+- The former GHCR package is intentionally not maintained; live publishing remains unexecuted until a release is explicitly authorized.
+- Work-unit commit: pending.
 
 ### VIO-03 — Italian README and bilingual Pages
 
@@ -180,10 +187,10 @@ Evidence: pending.
 - [x] User approved Violarr branding, subtitle, Italian-first localization, repository rename, Pages path, and use of the active GitHub session.
 - [x] Read-only inventory completed with compatibility boundaries and delivery forecast.
 - [x] VIO-01 complete.
-- [ ] VIO-02 complete.
+- [x] VIO-02 complete.
 - [ ] VIO-03 complete.
 - [ ] VIO-04 complete.
 
 ## Next step
 
-Commit VIO-01 as one reviewable work unit, record its identity, then implement VIO-02.
+Commit VIO-02 as one reviewable work unit, record its identity, then implement VIO-03.

@@ -1,3 +1,4 @@
+import json
 import re
 from pathlib import Path
 
@@ -5,6 +6,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DOCKERFILE = ROOT / "Dockerfile"
 ENTRYPOINT = ROOT / "entrypoint.sh"
+COMPOSE = ROOT / "docker-compose.yml"
+PUBLISH_WORKFLOW = ROOT / ".github" / "workflows" / "publish-image.yml"
+SNAPSHOT_UPDATER = ROOT / "snapshot_updater.py"
+SETTINGS = ROOT / "settings.py"
+APP = ROOT / "app.py"
+WEBAPI = ROOT / "webapi.py"
 
 
 def dockerfile_text():
@@ -99,3 +106,86 @@ def test_runtime_defaults_keep_data_layout_without_baking_password():
     assert re.search(r'\bPGDATA="?/data/postgres"?', stage)
     assert re.search(r'\bSNAPSHOT_STATE_FILE="?/data/state/snapshot-version"?', stage)
     assert not re.search(r"(?im)^ENV\s+[^\n]*\bDB_PASSWORD=", stage)
+
+
+def test_distribution_metadata_uses_violarr_public_identity():
+    dockerfile = dockerfile_text()
+
+    assert 'org.opencontainers.image.title="Violarr"' in dockerfile
+    assert (
+        'org.opencontainers.image.source="https://github.com/xbit18/violarr"'
+        in dockerfile
+    )
+
+    package_names = {
+        "frontend": "violarr-webui",
+        "docs": "violarr-docs",
+    }
+    for directory, expected_name in package_names.items():
+        package = json.loads((ROOT / directory / "package.json").read_text(encoding="utf-8"))
+        lock = json.loads(
+            (ROOT / directory / "package-lock.json").read_text(encoding="utf-8")
+        )
+        assert package["name"] == expected_name
+        assert lock["name"] == expected_name
+        assert lock["packages"][""]["name"] == expected_name
+
+
+def test_compose_uses_primary_image_and_preserves_operational_aliases():
+    compose = COMPOSE.read_text(encoding="utf-8")
+
+    assert re.search(r"(?m)^\s{2}icvdb-torznab:\s*$", compose)
+    assert re.search(
+        r"(?m)^\s{4}image:\s+ghcr\.io/xbit18/violarr:latest\s*$", compose
+    )
+    assert re.search(r"(?m)^\s{4}container_name:\s+icvdb-torznab\s*$", compose)
+    assert re.search(r"(?m)^\s{6}-\s+icvdb_data:/data\s*$", compose)
+    assert re.search(r"(?m)^\s{4}name:\s+icvdb_torznab_data\s*$", compose)
+
+
+def test_release_publishes_only_primary_image_tags():
+    workflow = PUBLISH_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "PRIMARY_IMAGE_NAME: xbit18/violarr" in workflow
+    assert "${{ env.REGISTRY }}/${{ env.PRIMARY_IMAGE_NAME }}" in workflow
+    assert "LEGACY_IMAGE_NAME" not in workflow
+    assert "xbit18/icvdb-torznab" not in workflow
+    assert "tags: ${{ steps.meta.outputs.tags }}" in workflow
+
+
+def test_snapshot_repository_remains_a_separate_compatibility_contract():
+    updater = SNAPSHOT_UPDATER.read_text(encoding="utf-8")
+
+    assert (
+        "https://api.github.com/repos/xbit18/icvdb-snapshots/releases/latest"
+        in updater
+    )
+
+
+def test_stable_data_environment_and_route_identifiers_remain_unchanged():
+    dockerfile = dockerfile_text()
+    settings = SETTINGS.read_text(encoding="utf-8")
+    app = APP.read_text(encoding="utf-8")
+    webapi = WEBAPI.read_text(encoding="utf-8")
+
+    assert 'DEFAULT_SETTINGS_PATH = Path("/data/state/settings.json")' in settings
+    assert '"schema_version": 1' in settings
+    for name in (
+        "DB_HOST",
+        "DB_PORT",
+        "DB_NAME",
+        "DB_USER",
+        "DB_AUTO_UPDATE",
+        "DB_UPDATE_INTERVAL",
+        "DB_UPDATE_START_DELAY",
+    ):
+        assert name in dockerfile
+    for name in (
+        "ICVDB_SETTINGS_PATH",
+        "ICVDB_RESULT_PRESET",
+        "ICVDB_PROWLARR_URL",
+        "ICVDB_PROWLARR_API_KEY",
+    ):
+        assert name in settings
+    assert '@app.get("/api")' in app
+    assert 'APIRouter(prefix="/webapi"' in webapi
