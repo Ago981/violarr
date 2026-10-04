@@ -196,6 +196,30 @@ Evidence:
 - Verification left the tracked worktree clean. No release, tag, pull request, or merge was created.
 - GitHub accepted `feature/v1.1.0` through transition and verification commit `f76e9bd`.
 
+### VIO-05 — Release-readiness cleanup
+
+- [x] Remove stale pre-release and pending-verification wording from release-facing documentation.
+- [x] Replace the obsolete snapshot updater User-Agent with the Violarr identity and cover it with a deterministic test.
+- [x] Verify bilingual documentation formatting/build and the Python regression suite.
+- [x] Confirm no active release-facing references still describe v1.1.0 as unreleased.
+
+Route: delegated direct writer. Trigger: coordinated documentation, code, and behavior-test changes span multiple non-trivial files.
+
+Acceptance:
+
+- Changelog, README, architecture, installation, Docker, and troubleshooting pages describe v1.1.0 as release-ready.
+- Snapshot requests identify the application as Violarr.
+- Focused RED, GREEN, full Python tests, and bilingual documentation checks report observed results.
+
+Evidence:
+
+- Observed RED: the focused behavior test showed both snapshot HTTP requests still sent `icvdb-torznab`.
+- Observed GREEN: both requests now send `Violarr/1.1.0`; focused test and independent spot check passed.
+- Full regression passed 100 Python tests; documentation formatting and production build passed.
+- Release-facing search found no stale prerelease or pending-verification claims; the sole remaining match is this historical ODD checklist.
+- Native assessment classified the 160-line candidate as medium risk and under budget while RDD remained globally disabled.
+- Work-unit commit: `5b5356e` (`fix(release): finalize v1.1.0 readiness`).
+
 ## Progress
 
 - [x] User approved Violarr branding, subtitle, Italian-first localization, repository rename, Pages path, and use of the active GitHub session.
@@ -204,7 +228,8 @@ Evidence:
 - [x] VIO-02 complete.
 - [x] VIO-03 complete.
 - [x] VIO-04 complete.
+- [x] VIO-05 complete.
 
 ## Next step
 
-Rebranding is complete and pushed. Pull request and merge remain user decisions.
+Push the completed release-readiness work unit. Tagging and publishing the release remain user decisions.
