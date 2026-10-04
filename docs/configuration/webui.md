@@ -1,26 +1,30 @@
 # WebUI
 
-Open `http://HOST:8000/` to view service status and manage supported settings.
-The WebUI is a same-origin Vue application served by FastAPI from the existing
-container.
+Apri `http://HOST:8000/` per controllare il servizio e gestire le impostazioni
+supportate. La WebUI è un'applicazione Vue same-origin servita da FastAPI nello
+stesso container.
 
-## Available sections
+## Sezioni disponibili
 
-| Section           | Purpose                                                          |
-| ----------------- | ---------------------------------------------------------------- |
-| Dashboard         | Database, updater, result-processing, and cached Prowlarr status |
-| Database updates  | Enable updates and set the interval                              |
-| Result processing | Select a preset or edit custom rules                             |
-| Prowlarr          | Save connection details, test access, and add the indexer        |
+| Sezione                | Scopo                                                       |
+| ---------------------- | ----------------------------------------------------------- |
+| Dashboard              | Stato di database, updater, risultati e cache Prowlarr      |
+| Aggiornamenti database | Abilitazione e intervallo degli aggiornamenti               |
+| Elaborazione risultati | Selezione del preset e modifica delle regole personalizzate |
+| Prowlarr               | Connessione, verifica dell'accesso e aggiunta dell'indexer  |
 
-Changes are persisted to `/data/state/settings.json`. The UI never reads a saved
-Prowlarr API key back: it receives only `api_key_configured`.
+Le modifiche sono salvate in `/data/state/settings.json`. La UI non rilegge mai
+una API key Prowlarr salvata: riceve solo `api_key_configured`.
 
-::: tip Environment-controlled values Environment variables have higher
-precedence than persisted settings. A value controlled by the runtime can appear
-effective in the UI without being written to `settings.json`. :::
+::: tip Valori controllati dall'ambiente
 
-## Network posture
+Le variabili d'ambiente hanno priorità sulle impostazioni persistenti. Un valore
+di runtime può risultare attivo nella UI senza essere scritto in
+`settings.json`.
 
-The WebUI and its `/webapi` backend have no authentication. Expose them only on
-a trusted network or behind an authenticated reverse proxy.
+:::
+
+## Esposizione di rete
+
+La WebUI e il backend `/webapi` non hanno autenticazione. Esponili solo su una
+rete affidabile o dietro un reverse proxy autenticato.

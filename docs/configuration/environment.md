@@ -1,40 +1,44 @@
-# Environment variables
+# Variabili d'ambiente
 
-Defaults are loaded first, persisted settings second, and runtime environment
-overrides last. Runtime overrides are effective without rewriting
+La priorità è: valori predefiniti, impostazioni persistenti, override di
+runtime. Gli override sono efficaci senza riscrivere
 `/data/state/settings.json`.
 
-## User-facing overrides
+## Override per l'utente
 
-| Variable                 | Default                        | Effect                                                               |
-| ------------------------ | ------------------------------ | -------------------------------------------------------------------- |
-| `DB_AUTO_UPDATE`         | `true`                         | Overrides automatic-update enabled state                             |
-| `DB_UPDATE_INTERVAL`     | `86400`                        | Overrides interval in seconds; valid range 60–604800                 |
-| `DB_UPDATE_START_DELAY`  | `60`                           | Delay before the first periodic check                                |
-| `ICVDB_RESULT_PRESET`    | `unfiltered`                   | Overrides the active preset                                          |
-| `ICVDB_PROWLARR_URL`     | empty                          | Overrides the Prowlarr base URL                                      |
-| `ICVDB_PROWLARR_API_KEY` | empty                          | Overrides the Prowlarr API key                                       |
-| `PROWLARR_API_KEY`       | empty                          | Compatibility API-key override; wins when both key variables are set |
-| `PROWLARR_INDEXER_URL`   | empty                          | Overrides the Torznab URL given to Prowlarr                          |
-| `SNAPSHOT_LATEST_URL`    | GitHub latest-release API      | Changes the snapshot release metadata source                         |
-| `SNAPSHOT_STATE_FILE`    | `/data/state/snapshot-version` | Changes the installed-version state path                             |
-| `ICVDB_SETTINGS_PATH`    | `/data/state/settings.json`    | Changes the settings path                                            |
+| Variabile                | Valore predefinito             | Effetto                                                               |
+| ------------------------ | ------------------------------ | --------------------------------------------------------------------- |
+| `DB_AUTO_UPDATE`         | `true`                         | Sostituisce lo stato degli aggiornamenti automatici                   |
+| `DB_UPDATE_INTERVAL`     | `86400`                        | Intervallo in secondi; valori validi 60–604800                        |
+| `DB_UPDATE_START_DELAY`  | `60`                           | Ritardo prima del primo controllo periodico                           |
+| `ICVDB_RESULT_PRESET`    | `unfiltered`                   | Sostituisce il preset attivo                                          |
+| `ICVDB_PROWLARR_URL`     | vuoto                          | Sostituisce l'URL base di Prowlarr                                    |
+| `ICVDB_PROWLARR_API_KEY` | vuoto                          | Sostituisce la API key di Prowlarr                                    |
+| `PROWLARR_API_KEY`       | vuoto                          | Override compatibile; prevale se sono impostate entrambe le variabili |
+| `PROWLARR_INDEXER_URL`   | vuoto                          | Sostituisce l'URL Torznab fornito a Prowlarr                          |
+| `SNAPSHOT_LATEST_URL`    | GitHub latest-release API      | Cambia la sorgente dei metadati degli snapshot                        |
+| `SNAPSHOT_STATE_FILE`    | `/data/state/snapshot-version` | Cambia il percorso dello stato della versione installata              |
+| `ICVDB_SETTINGS_PATH`    | `/data/state/settings.json`    | Cambia il percorso delle impostazioni                                 |
 
-## Internal runtime variables
+## Variabili interne di runtime
 
-The image supplies these values for its embedded PostgreSQL instance. Normal
-single-container deployments should not change them.
+L'immagine fornisce questi valori per PostgreSQL incorporato. Una normale
+installazione a container singolo non dovrebbe modificarli.
 
-| Variable            | Image value                     |
+| Variabile           | Valore dell'immagine            |
 | ------------------- | ------------------------------- |
 | `DB_HOST`           | `127.0.0.1`                     |
 | `DB_PORT`           | `5432`                          |
 | `DB_NAME`           | `icv_db`                        |
 | `DB_USER`           | `icv`                           |
-| `DB_PASSWORD`       | internal container value        |
-| `DB_ADMIN_DB`       | `postgres` when unset           |
-| `FRONTEND_DIST_DIR` | `/app/frontend-dist` when unset |
+| `DB_PASSWORD`       | valore interno al container     |
+| `DB_ADMIN_DB`       | `postgres` se non impostato     |
+| `FRONTEND_DIST_DIR` | `/app/frontend-dist` se assente |
 
-::: warning Secrets Use container secrets or protected deployment configuration
-for API keys. The application masks keys in normal read responses, but it does
-not encrypt values stored in `settings.json`. :::
+::: warning Segreti
+
+Usa secret del container o configurazioni protette per le API key.
+L'applicazione maschera le chiavi nelle risposte, ma non cifra i valori salvati
+in `settings.json`.
+
+:::

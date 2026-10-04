@@ -1,6 +1,6 @@
-# Architettura
+# Architecture
 
-Violarr usa un solo container e un solo volume persistente.
+Violarr remains one container and one persisted volume.
 
 ```text
 Client / Prowlarr
@@ -17,12 +17,12 @@ PostgreSQL 16 on 127.0.0.1:5432
 /data/postgres + /data/state
 ```
 
-L'immagine Docker compila Vue in uno stage Node e copia nel runtime
-PostgreSQL/Python solo gli asset di produzione. FastAPI monta gli asset dopo
-aver registrato `/api` e `/webapi`, quindi il fallback SPA non può nascondere le
-route API.
+The Docker image builds the Vue application in a Node stage, then copies only
+its production assets into the PostgreSQL/Python runtime. FastAPI mounts those
+assets after registering `/api` and `/webapi`, so SPA fallback cannot shadow API
+routes.
 
-## Flussi delle richieste
+## Request flows
 
 ### Torznab
 
@@ -37,12 +37,12 @@ query parameters → parameterized SQL → 1000-row processing window when enabl
 browser → static Vue assets → same-origin /webapi → settings/updater/Prowlarr
 ```
 
-### Aggiornamento snapshot
+### Snapshot update
 
 ```text
 GitHub release → SHA256 + dump validation → candidate database validation
                → maintenance switch → post-switch validation → state update
 ```
 
-Per moduli e invarianti destinati ai maintainer consulta
+For maintainer-level module and invariant details, see the repository
 [`ARCHITECTURE.md`](https://github.com/xbit18/violarr/blob/main/ARCHITECTURE.md).

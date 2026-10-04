@@ -1,6 +1,6 @@
 # Docker
 
-## Start and inspect
+## Avvio e controllo
 
 ```bash
 docker run -d \
@@ -8,18 +8,18 @@ docker run -d \
   -p 8000:8000 \
   -v icvdb_torznab_data:/data \
   --restart unless-stopped \
-  ghcr.io/xbit18/icvdb-torznab:latest
+  ghcr.io/xbit18/violarr:latest
 
 docker logs -f icvdb-torznab
 ```
 
-Only FastAPI port `8000` is published. PostgreSQL listens on `127.0.0.1:5432`
-inside the container and is not exposed to the host.
+Viene pubblicata solo la porta FastAPI `8000`. PostgreSQL ascolta su
+`127.0.0.1:5432` nel container e non è esposto all'host.
 
-## Update the application image
+## Aggiornare l'immagine
 
 ```bash
-docker pull ghcr.io/xbit18/icvdb-torznab:latest
+docker pull ghcr.io/xbit18/violarr:latest
 docker stop icvdb-torznab
 docker rm icvdb-torznab
 docker run -d \
@@ -27,20 +27,22 @@ docker run -d \
   -p 8000:8000 \
   -v icvdb_torznab_data:/data \
   --restart unless-stopped \
-  ghcr.io/xbit18/icvdb-torznab:latest
+  ghcr.io/xbit18/violarr:latest
 ```
 
-The named volume survives container replacement.
+Il volume denominato sopravvive alla sostituzione del container.
 
-::: danger Do not remove the volume Do not add `-v` to `docker rm` and do not
-delete `icvdb_torznab_data` unless you intend to erase PostgreSQL data, snapshot
-state, and WebUI settings. :::
+::: danger Non rimuovere il volume
 
-## v1.0 volume upgrade
+Non aggiungere `-v` a `docker rm` e non eliminare `icvdb_torznab_data` a meno
+che tu voglia cancellare dati PostgreSQL, stato degli snapshot e impostazioni
+WebUI.
 
-v1.1 keeps the same PostgreSQL 16 data path, snapshot state file, image port,
-and `/data` volume contract. On first v1.1 startup, the settings store creates
-`/data/state/settings.json` with defaults while reusing existing database data.
+:::
 
-The upgrade path is designed for backward compatibility, but end-to-end Docker
-verification with an actual v1.0 volume is still pending.
+## Aggiornamento del volume v1.0
+
+v1.1 mantiene percorso dati PostgreSQL 16, file di stato, porta e contratto del
+volume `/data`. Al primo avvio crea `/data/state/settings.json` con i valori
+predefiniti e riutilizza il database esistente. La verifica Docker end-to-end
+con un volume v1.0 reale è ancora in sospeso.

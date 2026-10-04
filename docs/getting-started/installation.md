@@ -1,9 +1,9 @@
-# Installation
+# Installazione
 
-Run one container with one persistent volume. No external PostgreSQL service or
-Docker socket is required.
+Esegui un solo container con un solo volume persistente. Non servono un servizio
+PostgreSQL esterno né un socket Docker.
 
-## Quick path
+## Procedura rapida
 
 ```bash
 docker run -d \
@@ -11,29 +11,32 @@ docker run -d \
   -p 8000:8000 \
   -v icvdb_torznab_data:/data \
   --restart unless-stopped \
-  ghcr.io/xbit18/icvdb-torznab:latest
+  ghcr.io/xbit18/violarr:latest
 ```
 
-The first start initializes PostgreSQL 16, downloads and validates the latest
-ICVDB snapshot, restores it, and then starts FastAPI. Bootstrap can take time.
+Il primo avvio inizializza PostgreSQL 16, scarica e convalida l'ultimo snapshot
+ICVDB, lo ripristina e avvia FastAPI. L'inizializzazione può richiedere tempo.
 
-When the service is ready:
+Quando il servizio è pronto:
 
 - WebUI: `http://localhost:8000/`
 - Torznab: `http://localhost:8000/api`
 - WebAPI: `http://localhost:8000/webapi`
 
-::: warning Unreleased v1.1.0 The current public `latest` image may still
-represent v1.0 until v1.1.0 is published. v1.0 continues to provide `/api`, but
-not the v1.1 WebUI and WebAPI. :::
+::: warning v1.1.0 non rilasciata
 
-## Persistent data
+L'immagine pubblica `latest` potrebbe ancora essere v1.0. v1.0 continua a
+fornire `/api`, ma non WebUI e WebAPI v1.1.
 
-Mount exactly one volume at `/data`. It holds the PostgreSQL cluster and state
-files. Replacing the container is safe when the volume is retained; deleting the
-volume deletes the local database and settings.
+:::
 
-## Next step
+## Dati persistenti
 
-Continue with [first setup](./first-setup) or use the
-[Docker Compose example](./docker-compose).
+Monta esattamente un volume su `/data`: contiene il cluster PostgreSQL e i file
+di stato. Puoi sostituire il container conservando il volume; eliminare il
+volume cancella database e impostazioni locali.
+
+## Passo successivo
+
+Continua con la [prima configurazione](./first-setup) oppure usa l'esempio
+[Docker Compose](./docker-compose).

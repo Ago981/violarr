@@ -1,21 +1,21 @@
-# First setup
+# Prima configurazione
 
-## Quick path
+## Procedura rapida
 
-1. Wait for the initial snapshot restore to finish in the container logs.
-2. Open `http://localhost:8000/`.
-3. Confirm that the dashboard reports the database as connected.
-4. Choose a [result-processing preset](../configuration/result-processing).
-5. Configure and test [Prowlarr](../configuration/prowlarr).
+1. Attendi nei log il completamento del ripristino iniziale.
+2. Apri `http://localhost:8000/`.
+3. Verifica che la dashboard indichi il database come connesso.
+4. Scegli un [preset di elaborazione](../configuration/result-processing).
+5. Configura e verifica [Prowlarr](../configuration/prowlarr).
 
-Test Torznab directly:
+Prova direttamente Torznab:
 
 ```bash
 curl 'http://localhost:8000/api?t=caps'
 curl -s 'http://localhost:8000/api?t=search&q=avatar&limit=10'
 ```
 
-## What the first start creates
+## Cosa crea il primo avvio
 
 ```text
 /data/
@@ -25,11 +25,11 @@ curl -s 'http://localhost:8000/api?t=search&q=avatar&limit=10'
     └── snapshot-version     installed snapshot tag
 ```
 
-Settings are written atomically. Runtime environment overrides affect the
-effective configuration but do not overwrite stored values.
+Le impostazioni sono scritte atomicamente. Gli override d'ambiente modificano la
+configurazione effettiva, ma non sovrascrivono i valori memorizzati.
 
-## Security before sharing
+## Sicurezza prima della condivisione
 
-There is no user authentication for the WebUI, WebAPI, or Torznab endpoint. Do
-not publish port `8000` directly to the internet. Use a trusted LAN, host
-firewall, or authenticated reverse proxy.
+WebUI, WebAPI ed endpoint Torznab non hanno autenticazione. Non pubblicare la
+porta `8000` direttamente su Internet: usa una LAN affidabile, il firewall
+dell'host o un reverse proxy autenticato.

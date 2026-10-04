@@ -1,17 +1,17 @@
 # Torznab
 
-ICVDB Torznab exposes one endpoint at `/api` for Prowlarr and other compatible
-clients.
+Violarr espone l'endpoint `/api` per Prowlarr e altri client compatibili.
 
-Supported operations:
+Operazioni supportate:
 
 - `t=caps`
 - `t=search`
 - `t=movie`
 - `t=tvsearch`
 
-The endpoint returns XML generated with Python's XML element API, so titles and
-database values are escaped rather than concatenated into markup.
+L'endpoint restituisce XML generato con le API per elementi XML di Python:
+titoli e valori del database vengono sottoposti a escaping invece di essere
+concatenati nel markup.
 
-Start with the [capabilities reference](../reference/torznab-capabilities) for
-parameters, categories, limits, and emitted attributes.
+Consulta il [riferimento delle funzionalità](../reference/torznab-capabilities)
+per parametri, categorie, limiti e attributi emessi.

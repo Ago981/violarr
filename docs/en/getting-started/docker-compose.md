@@ -1,6 +1,6 @@
 # Docker Compose
 
-## File Compose
+## Compose file
 
 ```yaml
 services:
@@ -21,26 +21,25 @@ volumes:
     name: icvdb_torznab_data
 ```
 
-Avvia il servizio:
+Start it:
 
 ```bash
 docker compose up -d
 docker compose logs -f icvdb-torznab
 ```
 
-Aggiorna l'immagine senza rimuovere i dati:
+Update the image without removing data:
 
 ```bash
 docker compose pull
 docker compose up -d
 ```
 
-::: warning Sicurezza del volume
+::: warning Volume safety
 
-Non eseguire `docker compose down -v` a meno che l'eliminazione permanente dei
-dati sia intenzionale.
+Do not run `docker compose down -v` unless permanent data deletion is intended.
 
 :::
 
-Per le opzioni disponibili consulta le
-[variabili d'ambiente](../configuration/environment).
+For configuration choices, see
+[environment variables](../configuration/environment).

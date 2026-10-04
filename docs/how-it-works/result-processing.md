@@ -1,28 +1,31 @@
-# Result-processing pipeline
+# Pipeline di elaborazione dei risultati
 
-Processing sits between SQL results and Torznab XML generation.
+L'elaborazione si colloca tra i risultati SQL e la generazione dell'XML Torznab.
 
-## Unfiltered path
+## Percorso senza filtri
 
-`unfiltered` passes the requested `limit` and `offset` directly to SQL,
-preserving the v1.0 query order.
+`unfiltered` passa `limit` e `offset` direttamente a SQL e conserva l'ordine di
+v1.0.
 
-## Processed path
+## Percorso elaborato
 
-For any other preset, the requested page is mapped to fixed, non-overlapping
-1000-row database windows. Each required window is queried and processed
-independently, then the requested local slice is returned.
+Con gli altri preset, la pagina richiesta viene associata a finestre fisse e non
+sovrapposte di 1000 righe. Ogni finestra necessaria viene interrogata ed
+elaborata indipendentemente, quindi viene restituita la porzione locale
+richiesta.
 
-This design bounds memory and supports arbitrary offsets, including pages that
-cross a window boundary. It also means ranking and filtering are
-**window-local**, not global across the complete result set.
+Questo limita la memoria e supporta offset arbitrari, comprese pagine a cavallo
+tra finestre. Ordinamento e filtri sono quindi **locali alla finestra**, non
+globali sull'intero insieme dei risultati.
 
-## Ordering guarantees
+## Garanzie sull'ordine
 
-- Italian ranking uses token-aware title scores.
-- Custom ranking sums all matching score rules.
-- Python's stable sort preserves original database order for equal scores.
-- Exclusion runs before custom scoring.
+- La priorità italiana usa punteggi basati sui token del titolo.
+- L'ordinamento personalizzato somma tutte le regole di punteggio
+  corrispondenti.
+- Lo stable sort di Python conserva l'ordine originale a parità di punteggio.
+- Le esclusioni sono applicate prima dei punteggi personalizzati.
 
-Hard filters can make a page contain fewer items because pagination slices the
-processed database window; hidden rows are not backfilled from later windows.
+I filtri rigidi possono produrre pagine con meno elementi: la paginazione taglia
+la finestra elaborata e le righe nascoste non sono sostituite da finestre
+successive.

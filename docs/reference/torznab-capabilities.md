@@ -1,46 +1,42 @@
-# Torznab capabilities
+# Funzionalità Torznab
 
-Request capabilities with:
+Richiedi le funzionalità con:
 
 ```bash
 curl 'http://localhost:8000/api?t=caps'
 ```
 
-## Advertised searches
+## Ricerche dichiarate
 
-| Operation  | Advertised parameters         |
+| Operazione | Parametri dichiarati          |
 | ---------- | ----------------------------- |
 | `search`   | `q`                           |
 | `movie`    | `q`, `imdbid`, `tmdbid`       |
 | `tvsearch` | `q`, `season`, `ep`, `imdbid` |
 
-All requests also accept `t`, `cat`, `limit`, `offset`, `apikey`, and `extended`
-at the HTTP layer. `cat`, `apikey`, and `extended` are accepted for
-compatibility but do not currently change search behavior.
+Tutte le richieste accettano anche `t`, `cat`, `limit`, `offset`, `apikey` ed
+`extended`. `cat`, `apikey` ed `extended` sono accettati per compatibilità ma
+non modificano la ricerca.
 
-`limit` defaults to 100 and must be 1–200. `offset` defaults to 0 and must be
-non-negative. Numeric IMDb IDs are normalized by adding the `tt` prefix.
+`limit` vale 100 per default e deve essere 1–200. `offset` vale 0 e non può
+essere negativo. Gli IMDb ID numerici sono normalizzati aggiungendo `tt`.
 
-## Categories
+## Categorie
 
-| ID     | Name     | Mapping                          |
-| ------ | -------- | -------------------------------- |
-| `2000` | Movies   | Database type `movie`            |
-| `5000` | TV       | Other non-movie, non-anime types |
-| `5070` | TV/Anime | Database type `anime`            |
+| ID     | Nome     | Mappatura                          |
+| ------ | -------- | ---------------------------------- |
+| `2000` | Movies   | Tipo database `movie`              |
+| `5000` | TV       | Altri tipi diversi da film e anime |
+| `5070` | TV/Anime | Tipo database `anime`              |
 
-## XML response
+## Risposta XML
 
-Searches return RSS 2.0 XML. Each result can contain:
+Le ricerche restituiscono XML RSS 2.0. Ogni risultato può contenere titolo, GUID
+info-hash non permalink, magnet link, `pubDate` UTC facoltativa, enclosure
+BitTorrent e attributi Torznab `category`, `infohash`, `magneturl`, `seeders`,
+`peers`, `size` facoltativo, `downloadvolumefactor=0`, `uploadvolumefactor=1` e
+`description` facoltativa del provider.
 
-- title, non-permalink info-hash GUID, magnet link, and optional UTC `pubDate`;
-- a BitTorrent enclosure with magnet URL and optional byte length;
-- Torznab attributes `category`, `infohash`, `magneturl`, `seeders`, `peers`,
-  optional `size`, `downloadvolumefactor=0`, `uploadvolumefactor=1`, and
-  optional provider `description`.
-
-Unknown `t` values return a valid empty RSS feed. Database and input values are
-escaped by XML element serialization.
-
-When result processing is enabled, pagination uses
-[fixed 1000-row windows](../how-it-works/result-processing).
+Valori `t` sconosciuti producono un feed RSS vuoto valido. La serializzazione
+XML esegue l'escaping dei valori. Con l'elaborazione attiva, la paginazione usa
+[finestre fisse di 1000 righe](../how-it-works/result-processing).

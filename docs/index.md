@@ -2,49 +2,53 @@
 layout: home
 
 hero:
-  name: ICVDB Torznab
-  text: One self-hosted bridge for ICVDB and Prowlarr
+  name: Violarr
+  text: L’integrazione Prowlarr per Il Corsaro Viola
   tagline:
-    Run PostgreSQL, the Torznab API, database updates, and the WebUI in one
+    PostgreSQL, API Torznab, aggiornamenti del database e WebUI in un solo
     container.
   actions:
     - theme: brand
-      text: Install with Docker
+      text: Installa con Docker
       link: /getting-started/installation
     - theme: alt
-      text: Configure Prowlarr
+      text: Configura Prowlarr
       link: /configuration/prowlarr
 
 features:
-  - title: Torznab compatible
+  - title: Compatibile con Torznab
+    details: Cerca film, serie TV e anime da Prowlarr tramite l'endpoint /api.
+  - title: Elaborazione utile dei risultati
     details:
-      Search movies, TV, and anime from Prowlarr through the established /api
-      endpoint.
-  - title: Useful result processing
+      Preferisci o richiedi marcatori italiani espliciti oppure crea regole
+      limitate di punteggio ed esclusione.
+  - title: Aggiornamenti snapshot sicuri
     details:
-      Prefer or require explicit Italian markers, or build bounded custom score
-      and exclusion rules.
-  - title: Safe snapshot updates
-    details:
-      Validate a candidate database before a brief maintenance-only switch, with
-      rollback on failure.
+      Convalida un database candidato prima di una breve sostituzione in
+      manutenzione, con rollback in caso di errore.
 ---
 
-## Start here
+## Inizia da qui
 
-ICVDB Torznab is a thin adapter between an ICVDB PostgreSQL snapshot and
-Torznab-compatible clients. It does not download torrents or manage a media
-library.
+Violarr è un adattatore leggero tra uno snapshot PostgreSQL di ICVDB e client
+compatibili con Torznab. Non scarica torrent e non gestisce librerie
+multimediali.
 
-1. [Start the container](/getting-started/installation).
-2. Open the WebUI at `http://localhost:8000`.
-3. [Connect Prowlarr](/configuration/prowlarr).
+1. [Avvia il container](/getting-started/installation).
+2. Apri la WebUI su `http://localhost:8000`.
+3. [Collega Prowlarr](/configuration/prowlarr).
 
-::: warning v1.1.0 release status The WebUI and configuration features
-documented here are pending the v1.1.0 release. The implementation is present in
-the project, but publication of the release image and Docker runtime
-verification are not yet complete. :::
+::: warning Stato della release v1.1.0
 
-::: danger Network exposure The application has no authentication. Keep port
-`8000` on a trusted network or place an authenticated reverse proxy in front of
-it. :::
+Le funzionalità WebUI e di configurazione descritte qui attendono la release
+v1.1.0. L'implementazione è nel progetto, ma l'immagine non è stata pubblicata e
+la verifica Docker non è completa.
+
+:::
+
+::: danger Esposizione di rete
+
+L'applicazione non ha autenticazione. Mantieni la porta `8000` su una rete
+affidabile o usa un reverse proxy autenticato.
+
+:::

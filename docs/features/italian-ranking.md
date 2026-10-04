@@ -1,20 +1,24 @@
-# Italian ranking
+# Priorità ai risultati italiani
 
-The `italian_preferred` preset promotes titles using token-aware markers without
-removing fallback results.
+Il preset `italian_preferred` porta in alto i titoli con marcatori riconosciuti
+senza rimuovere i risultati di fallback.
 
-## Ranking order
+## Ordine
 
-1. Exact title tokens `ITA`, `ITALIAN`, or `ITALIANO` receive score 100.
-2. Exact title tokens `MULTI` or `DUAL` receive score 25.
-3. Other titles receive score 0.
+1. I token esatti `ITA`, `ITALIAN` o `ITALIANO` ricevono 100 punti.
+2. I token esatti `MULTI` o `DUAL` ricevono 25 punti.
+3. Gli altri titoli ricevono 0 punti.
 
-Tokens are case-insensitive sequences of ASCII letters and digits. This avoids
-matching `ITA` inside unrelated words. Equal scores retain database order.
+I token sono sequenze senza distinzione tra maiuscole e minuscole di lettere e
+cifre ASCII. Così `ITA` non corrisponde all'interno di parole non correlate. A
+parità di punteggio resta l'ordine del database.
 
-`italian_only` is stricter: it keeps only `ITA`, `ITALIAN`, or `ITALIANO` token
-matches. `MULTI` and `DUAL` alone are ranking hints, not proof of Italian audio.
+`italian_only` mantiene solo corrispondenze `ITA`, `ITALIAN` o `ITALIANO`.
+`MULTI` e `DUAL` sono indizi, non prove della presenza dell'audio italiano.
 
-::: warning Scope This feature ranks ICVDB's response only. It does not change
-Radarr, Sonarr, or Prowlarr scoring and cannot guarantee downstream selection.
+::: warning Ambito
+
+La funzione ordina solo la risposta ICVDB. Non modifica il punteggio di Radarr,
+Sonarr o Prowlarr e non garantisce la selezione downstream.
+
 :::

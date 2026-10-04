@@ -1,39 +1,40 @@
-# Custom filters
+# Filtri personalizzati
 
-The `custom` preset evaluates bounded structured rules. It does not support
-regular expressions or arbitrary scripts.
+Il preset `custom` valuta regole strutturate e limitate. Non supporta
+espressioni regolari né script arbitrari.
 
-## Rule fields
+## Campi delle regole
 
-| Field      | Operators                            |
+| Campo      | Operatori                            |
 | ---------- | ------------------------------------ |
 | `title`    | `contains`, `not_contains`, `equals` |
 | `provider` | `contains`, `not_contains`, `equals` |
 | `size`     | `equals`, `gte`, `lte`               |
 | `seeders`  | `equals`, `gte`, `lte`               |
 
-Every rule contains `enabled`, `field`, `operator`, `value`, and `action`.
-`action` is either `score` or `exclude`; score rules also require `score`.
+Ogni regola contiene `enabled`, `field`, `operator`, `value` e `action`.
+`action` vale `score` o `exclude`; le regole di punteggio richiedono anche
+`score`.
 
-## Operator semantics
+## Semantica degli operatori
 
-| Value type     | Matching behavior                                                                                                                                                      |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Text           | `contains`, `not_contains`, and `equals` compare Unicode case-folded strings. `contains` and `not_contains` are substring tests; `equals` compares the complete value. |
-| Missing text   | A null or missing text field matches `not_contains` and does not match `contains` or `equals`.                                                                         |
-| Number         | `equals`, `gte`, and `lte` compare finite numeric values directly. Booleans are not numbers.                                                                           |
-| Missing number | A null, missing, boolean, NaN, or infinite result value never matches a numeric rule.                                                                                  |
+| Tipo              | Comportamento                                                                                 |
+| ----------------- | --------------------------------------------------------------------------------------------- |
+| Testo             | Confronto Unicode case-folded; `contains` cerca una sottostringa, `equals` l'intero valore    |
+| Testo mancante    | Corrisponde a `not_contains`, non a `contains` o `equals`                                     |
+| Numero            | `equals`, `gte` e `lte` confrontano valori finiti; i booleani non sono numeri                 |
+| Numero non valido | Un valore nullo, mancante, booleano, NaN o infinito non corrisponde mai a una regola numerica |
 
-Limits:
+Limiti: massimo 100 regole; testo non vuoto fino a 512 caratteri; valori e
+punteggi numerici finiti e non booleani; valore assoluto del punteggio fino
+a 1000.
 
-- at most 100 rules;
-- text values must be non-empty and no longer than 512 characters;
-- numeric rule values and scores must be finite numbers, not booleans;
-- score magnitude cannot exceed 1000.
+Le regole disabilitate non hanno effetto. Una regola `exclude` corrispondente
+rimuove il risultato; gli altri sono ordinati per somma dei punteggi, mantenendo
+stabile l'ordine a parità.
 
-Disabled rules have no effect. Any matching enabled exclusion rule removes the
-result. Remaining rows are ranked by the sum of matching score rules, with ties
-kept stable.
+::: danger Visibilità
 
-::: danger Visibility Exclusion is a hard filter. Hidden rows never reach
-Prowlarr. :::
+L'esclusione è un filtro rigido. Le righe nascoste non raggiungono Prowlarr.
+
+:::

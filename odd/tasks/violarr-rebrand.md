@@ -118,16 +118,16 @@ Evidence:
 - `docker compose config` resolved `ghcr.io/xbit18/violarr:latest` while retaining service/container `icvdb-torznab`, `/data`, and volume `icvdb_torznab_data`.
 - Release workflow uses one metadata/build path for only `ghcr.io/xbit18/violarr`, with least-privilege permissions and no shell steps.
 - The former GHCR package is intentionally not maintained; live publishing remains unexecuted until a release is explicitly authorized.
-- Work-unit commit: pending.
+- Work-unit commit: `55bc917` (`build: target Violarr image`).
 
 ### VIO-03 — Italian README and bilingual Pages
 
-- [ ] Rewrite `README.md` as the Italian primary entry point.
-- [ ] Add `README.en.md` with an obvious language switch.
-- [ ] Configure VitePress root locale as Italian and `/en/` as English.
-- [ ] Set Pages base to `/violarr/` and update repository/edit links.
-- [ ] Translate the complete root documentation and preserve the English content under `docs/en/`.
-- [ ] Update all clone, image, container, and documentation links consistently.
+- [x] Rewrite `README.md` as the Italian primary entry point.
+- [x] Add `README.en.md` with an obvious language switch.
+- [x] Configure VitePress root locale as Italian and `/en/` as English.
+- [x] Set Pages base to `/violarr/` and update repository/edit links.
+- [x] Translate the complete root documentation and preserve the English content under `docs/en/`.
+- [x] Update all clone, image, container, and documentation links consistently.
 
 Route: delegated. Trigger: broad documentation rewrite across more than four files.
 
@@ -145,7 +145,13 @@ npm --prefix docs run format:check
 npm --prefix docs run docs:build
 ```
 
-Evidence: pending.
+Evidence:
+
+- Italian `README.md` and all root documentation pages have equivalent English versions in `README.en.md` and `docs/en/`.
+- VitePress uses `/violarr/`, Italian root, English `/en/`, and locale-specific header, sidebar, outline, and previous/next labels.
+- Fixed 23 malformed custom containers whose inline markers captured later page content and disrupted pagination flow.
+- Final `format:check` and VitePress production build passed; rendered Italian and English pages show correct navigation, sidebar, callout boundaries, and previous/next controls.
+- Work-unit commit: pending.
 
 ### VIO-04 — GitHub repository transition and final bounded verification
 
@@ -188,9 +194,9 @@ Evidence: pending.
 - [x] Read-only inventory completed with compatibility boundaries and delivery forecast.
 - [x] VIO-01 complete.
 - [x] VIO-02 complete.
-- [ ] VIO-03 complete.
+- [x] VIO-03 complete.
 - [ ] VIO-04 complete.
 
 ## Next step
 
-Commit VIO-02 as one reviewable work unit, record its identity, then implement VIO-03.
+Commit VIO-03 as one coherent documentation work unit, then perform VIO-04.

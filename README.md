@@ -1,23 +1,27 @@
-# ICVDB Torznab
+# Violarr
 
-ICVDB Torznab is a self-hosted bridge from an ICVDB PostgreSQL snapshot to
-Torznab clients such as Prowlarr. One container runs PostgreSQL 16, FastAPI, the
-WebUI, and safe automatic database updates.
+[Italiano](README.md) · [English](README.en.md)
 
-> **v1.1.0 status:** the WebUI and configuration work documented below is
-> currently unreleased. The implementation is in the project, but the release
-> image has not been published and Docker runtime verification is still pending.
+**L’integrazione Prowlarr per Il Corsaro Viola.** Violarr è un bridge self-hosted
+tra uno snapshot PostgreSQL di ICVDB e client Torznab come Prowlarr. Un solo
+container esegue PostgreSQL 16, FastAPI, la WebUI e gli aggiornamenti sicuri del
+database.
 
-## Features
+> **Stato v1.1.0:** la WebUI e le funzioni di configurazione descritte qui non
+> sono ancora state rilasciate. L'implementazione è presente nel progetto, ma
+> l'immagine della release non è stata pubblicata e la verifica Docker è ancora
+> in sospeso.
 
-- Torznab searches for movies, TV, and anime
-- Persistent browser-based configuration
-- Italian-preferred ranking, Italian-only filtering, and bounded custom rules
-- Schema-derived Generic Torznab setup in Prowlarr
-- SHA256-verified candidate-database snapshot updates with rollback
-- One `/data` volume; PostgreSQL is not exposed to the host
+## Funzionalità
 
-## Quick start
+- Ricerche Torznab per film, serie TV e anime
+- Configurazione persistente tramite browser
+- Ordinamento con preferenza per l'italiano, filtro solo italiano e regole personalizzate limitate
+- Configurazione Generic Torznab in Prowlarr derivata dallo schema
+- Aggiornamenti degli snapshot tramite database candidato, con verifica SHA256 e rollback
+- Un solo volume `/data`; PostgreSQL non è esposto all'host
+
+## Avvio rapido
 
 ```bash
 docker run -d \
@@ -25,59 +29,60 @@ docker run -d \
   -p 8000:8000 \
   -v icvdb_torznab_data:/data \
   --restart unless-stopped \
-  ghcr.io/xbit18/icvdb-torznab:latest
+  ghcr.io/xbit18/violarr:latest
 ```
 
-Follow first-start progress:
+Segui l'avanzamento del primo avvio:
 
 ```bash
 docker logs -f icvdb-torznab
 ```
 
-After a v1.1-capable image starts, open the WebUI at
-`http://localhost:8000/`. The Torznab endpoint remains
+Quando sarà disponibile un'immagine compatibile con v1.1, apri la WebUI su
+`http://localhost:8000/`. L'endpoint Torznab resta
 `http://localhost:8000/api`.
 
-The first start initializes PostgreSQL, downloads the latest snapshot from
-[`xbit18/icvdb-snapshots`](https://github.com/xbit18/icvdb-snapshots), verifies
-its SHA256 digest, validates and restores it, and then starts FastAPI.
+Al primo avvio Violarr inizializza PostgreSQL, scarica lo snapshot più recente da
+[`xbit18/icvdb-snapshots`](https://github.com/xbit18/icvdb-snapshots), ne verifica
+il digest SHA256, lo convalida e lo ripristina, quindi avvia FastAPI.
 
-For Compose and upgrade instructions, read the
-[public documentation](https://xbit18.github.io/icvdb-torznab/).
+Per Docker Compose e gli aggiornamenti, consulta la
+[documentazione](https://xbit18.github.io/violarr/).
 
-## Result processing
+## Elaborazione dei risultati
 
-The default `unfiltered` preset preserves v1.0 ordering. Optional presets can
-prefer explicit Italian markers, hide non-Italian results, or apply structured
-score/exclusion rules.
+Il preset predefinito `unfiltered` conserva l'ordinamento di v1.0. I preset
+facoltativi possono preferire marcatori italiani espliciti, nascondere i
+risultati non italiani o applicare regole strutturate di punteggio ed esclusione.
 
-Ranking only changes the ICVDB response; it does not guarantee Radarr or Sonarr
-selection. Hard filters remove results before Prowlarr sees them.
+L'ordinamento modifica solo la risposta ICVDB: non garantisce la selezione da
+parte di Radarr o Sonarr. I filtri rigidi rimuovono i risultati prima che
+Prowlarr possa riceverli.
 
-## Connect Prowlarr
+## Collegare Prowlarr
 
-1. Open **Prowlarr** in the WebUI.
-2. Enter the Prowlarr URL and API key.
-3. Set the Indexer URL to an address Prowlarr can reach, such as
-   `http://icvdb-torznab:8000/api` on a shared Docker network.
-4. Save, test the connection, and add the indexer.
+1. Apri **Prowlarr** nella WebUI.
+2. Inserisci l'URL di Prowlarr e la API key.
+3. Imposta come Indexer URL un indirizzo raggiungibile da Prowlarr, per esempio
+   `http://icvdb-torznab:8000/api` su una rete Docker condivisa.
+4. Salva, verifica la connessione e aggiungi l'indexer.
 
-Do not use `localhost` for the Indexer URL when Prowlarr runs in another
-container: there it refers to the Prowlarr container itself.
+Non usare `localhost` come Indexer URL se Prowlarr gira in un altro container:
+in quel contesto indica il container di Prowlarr stesso.
 
-## Security
+## Sicurezza
 
-The WebUI, WebAPI, and Torznab endpoint have no authentication. Keep port `8000`
-on a trusted LAN or place an authenticated reverse proxy in front of it. The
-container does not require a Docker socket, and PostgreSQL listens only on
-`127.0.0.1:5432` inside the container.
+WebUI, WebAPI ed endpoint Torznab non hanno autenticazione. Mantieni la porta
+`8000` su una LAN affidabile oppure usa un reverse proxy autenticato. Il
+container non richiede un socket Docker e PostgreSQL ascolta solo su
+`127.0.0.1:5432` all'interno del container.
 
-## Documentation
+## Documentazione
 
-- [User documentation](https://xbit18.github.io/icvdb-torznab/)
+- [Documentazione utente](https://xbit18.github.io/violarr/)
 - [Architecture](ARCHITECTURE.md)
 - [Changelog](CHANGELOG.md)
 
-## License
+## Licenza
 
 MIT

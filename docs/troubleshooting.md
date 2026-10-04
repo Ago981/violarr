@@ -1,52 +1,52 @@
-# Troubleshooting
+# Risoluzione dei problemi
 
-Start with container logs:
+Inizia dai log del container:
 
 ```bash
 docker logs -f icvdb-torznab
 ```
 
-## WebUI does not open
+## La WebUI non si apre
 
-- Confirm port `8000` is published.
-- Check `curl 'http://localhost:8000/api?t=caps'`.
-- The public `latest` image may still be v1.0 until v1.1.0 is published; v1.0
-  has no WebUI.
-- A source checkout must build frontend assets before FastAPI can serve them.
+- Verifica che la porta `8000` sia pubblicata.
+- Esegui `curl 'http://localhost:8000/api?t=caps'`.
+- L'immagine pubblica `latest` potrebbe restare v1.0 fino alla pubblicazione di
+  v1.1.0; v1.0 non include la WebUI.
+- Un checkout dei sorgenti deve compilare gli asset frontend prima che FastAPI
+  possa servirli.
 
-## First start takes a long time
+## Il primo avvio richiede molto tempo
 
-Fresh installations download, verify, inspect, and restore a PostgreSQL dump
-before FastAPI starts. Follow the logs and preserve the `/data` volume between
-retries.
+Una nuova installazione scarica, verifica, ispeziona e ripristina un dump
+PostgreSQL prima di avviare FastAPI. Segui i log e conserva il volume `/data`.
 
-## Prowlarr Test fails
+## Il test di Prowlarr fallisce
 
-1. Confirm the Prowlarr URL is reachable from the ICVDB container.
-2. Confirm the API key in Prowlarr under **Settings → General**.
-3. If both applications are containers, do not use `localhost` unless they share
-   the same network namespace.
-4. Confirm Prowlarr exposes the Generic Torznab schema.
+1. Verifica che l'URL di Prowlarr sia raggiungibile dal container Violarr.
+2. Verifica la API key in **Settings → General** di Prowlarr.
+3. Tra container non usare `localhost`, salvo una condivisione del namespace di
+   rete.
+4. Verifica che Prowlarr esponga lo schema Generic Torznab.
 
-## Add succeeds but searches fail
+## L'aggiunta riesce ma le ricerche falliscono
 
-The Indexer URL must be reachable from the **Prowlarr container** and end at
-`/api`. Test it from the relevant network, not only from the host browser.
+L'Indexer URL deve terminare con `/api` ed essere raggiungibile dal **container
+Prowlarr**. Provalo dalla rete corretta, non solo dal browser sull'host.
 
-## Expected releases are missing
+## Mancano risultati attesi
 
-- `italian_only` and custom exclusion rules are hard filters.
-- Ranking is local to 1000-row database windows.
-- Result processing cannot guarantee Radarr/Sonarr selection.
-- Switch back to `unfiltered` to compare the original database order.
+- `italian_only` e le regole di esclusione sono filtri rigidi.
+- L'ordinamento è locale a finestre di 1000 righe.
+- L'elaborazione non garantisce la selezione di Radarr o Sonarr.
+- Torna a `unfiltered` per confrontare l'ordine originale.
 
-## Update is temporarily unavailable
+## L'aggiornamento è temporaneamente indisponibile
 
-HTTP `503` with `Retry-After: 5` is expected during the short database switch.
-Persistent updater errors appear on the WebUI dashboard and in logs. The active
-database remains unchanged for failures before the switch.
+HTTP `503` con `Retry-After: 5` è previsto durante la breve sostituzione del
+database. Gli errori persistenti compaiono nella dashboard e nei log. Prima
+della sostituzione, un errore lascia invariato il database attivo.
 
-## Settings do not match the saved file
+## Le impostazioni non corrispondono al file salvato
 
-Check [environment variables](./configuration/environment). Runtime overrides
-win over persisted values without rewriting `settings.json`.
+Controlla le [variabili d'ambiente](./configuration/environment): gli override
+di runtime prevalgono sui valori persistenti senza riscrivere `settings.json`.

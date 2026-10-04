@@ -1,8 +1,8 @@
-# Safe updates
+# Aggiornamenti sicuri
 
-Snapshot updates avoid restoring over the active database.
+Gli aggiornamenti non ripristinano lo snapshot sul database attivo.
 
-## Normal flow
+## Flusso normale
 
 ```text
 download and verify
@@ -21,13 +21,17 @@ validate active database
 write snapshot-version and remove previous database
 ```
 
-Download, checksum, dump, restore, or candidate-validation failures leave the
-active database unchanged. A post-switch validation failure attempts to rename
-`icv_db_previous` back into service.
+Errori di download, checksum, dump, ripristino o convalida del candidato
+lasciano invariato il database attivo. Se fallisce la convalida successiva alla
+sostituzione, il sistema prova a ripristinare `icv_db_previous`.
 
-Maintenance mode covers only the switch and final validation, not the download
-or candidate restore. Requests received in maintenance get a JSON HTTP `503`
-response rather than a partial search result.
+La manutenzione copre solo sostituzione e convalida finale, non download o
+ripristino. Le richieste ricevute in questa fase ottengono una risposta JSON
+HTTP `503`, non risultati parziali.
 
-::: warning Operational boundary Rollback protects the database switch. It is
-not a backup strategy for deletion of the `/data` volume. :::
+::: warning Confine operativo
+
+Il rollback protegge la sostituzione del database, ma non sostituisce un backup
+contro l'eliminazione del volume `/data`.
+
+:::

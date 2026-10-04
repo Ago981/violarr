@@ -1,22 +1,22 @@
-# Snapshot system
+# Sistema degli snapshot
 
-Snapshots are PostgreSQL custom-format dumps published as GitHub Release assets
-by [`xbit18/icvdb-snapshots`](https://github.com/xbit18/icvdb-snapshots).
+Gli snapshot sono dump PostgreSQL in formato custom pubblicati come asset delle
+GitHub Release di
+[`xbit18/icvdb-snapshots`](https://github.com/xbit18/icvdb-snapshots).
 
-## Discovery and validation
+## Individuazione e convalida
 
-1. Request the configured latest-release API URL.
-2. Select the first asset whose name ends in `.dump`.
-3. Require the asset metadata to contain a `sha256:` digest.
-4. Download the asset and verify SHA256.
-5. Run `pg_restore --list` before attempting a restore.
-6. Restore into `icv_db_candidate` with restore errors treated as fatal.
-7. Connect to the candidate and require user tables.
+1. Richiede l'URL configurato della latest release.
+2. Seleziona il primo asset con nome che termina in `.dump`.
+3. Richiede un digest `sha256:` nei metadati dell'asset.
+4. Scarica l'asset e verifica SHA256.
+5. Esegue `pg_restore --list` prima del ripristino.
+6. Ripristina in `icv_db_candidate`, trattando ogni errore come fatale.
+7. Si connette al candidato e richiede la presenza di tabelle utente.
 
-The installed release tag is written atomically to
-`/data/state/snapshot-version` only after a successful switch and final
-validation.
+Il tag installato viene scritto atomicamente in `/data/state/snapshot-version`
+solo dopo sostituzione e convalida finali.
 
-`SNAPSHOT_LATEST_URL` can point discovery at another compatible GitHub-style
-release response. The implementation expects `tag_name`, a `.dump` asset,
-`browser_download_url`, and a GitHub asset digest.
+`SNAPSHOT_LATEST_URL` può indicare una risposta compatibile con le release
+GitHub. L'implementazione richiede `tag_name`, un asset `.dump`,
+`browser_download_url` e un digest GitHub dell'asset.

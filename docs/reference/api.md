@@ -1,79 +1,79 @@
-# API reference
+# Riferimento API
 
-The service exposes three HTTP surfaces on port `8000`.
+Il servizio espone tre superfici HTTP sulla porta `8000`.
 
-| Prefix    | Purpose                            | Authentication                               |
-| --------- | ---------------------------------- | -------------------------------------------- |
-| `/`       | WebUI static application           | None                                         |
-| `/api`    | Torznab XML endpoint               | None; `apikey` is accepted but not validated |
-| `/webapi` | Same-origin JSON configuration API | None                                         |
+| Prefisso  | Scopo                                  | Autenticazione                                   |
+| --------- | -------------------------------------- | ------------------------------------------------ |
+| `/`       | Applicazione statica WebUI             | Nessuna                                          |
+| `/api`    | Endpoint XML Torznab                   | Nessuna; `apikey` è accettato ma non convalidato |
+| `/webapi` | API JSON same-origin di configurazione | Nessuna                                          |
 
-## WebAPI endpoints
+## Endpoint WebAPI
 
-| Method | Path                        | `200` response                                | Handled error statuses |
-| ------ | --------------------------- | --------------------------------------------- | ---------------------- |
-| `GET`  | `/webapi/status`            | Aggregate service status                      | —                      |
-| `GET`  | `/webapi/settings`          | Public schema-v1 settings                     | —                      |
-| `PUT`  | `/webapi/settings`          | Validated effective public settings           | `422` invalid body     |
-| `GET`  | `/webapi/result-processing` | Effective preset and custom rules             | —                      |
-| `PUT`  | `/webapi/result-processing` | Validated effective preset and rules          | `422` invalid body     |
-| `GET`  | `/webapi/prowlarr/status`   | Live status, including remote failure details | Always `200`           |
-| `POST` | `/webapi/prowlarr/test`     | `{ "connected": true, "error": null }`        | `400`, `502`           |
-| `POST` | `/webapi/prowlarr/indexer`  | Creation or existing-indexer result           | `400`, `502`           |
+| Metodo | Percorso                    | Risposta `200`                             | Errori gestiti        |
+| ------ | --------------------------- | ------------------------------------------ | --------------------- |
+| `GET`  | `/webapi/status`            | Stato aggregato del servizio               | —                     |
+| `GET`  | `/webapi/settings`          | Impostazioni pubbliche schema v1           | —                     |
+| `PUT`  | `/webapi/settings`          | Impostazioni effettive convalidate         | `422` body non valido |
+| `GET`  | `/webapi/result-processing` | Preset e regole effettivi                  | —                     |
+| `PUT`  | `/webapi/result-processing` | Preset e regole convalidati                | `422` body non valido |
+| `GET`  | `/webapi/prowlarr/status`   | Stato live, inclusi errori remoti          | Sempre `200`          |
+| `POST` | `/webapi/prowlarr/test`     | `{ "connected": true, "error": null }`     | `400`, `502`          |
+| `POST` | `/webapi/prowlarr/indexer`  | Risultato di creazione o indexer esistente | `400`, `502`          |
 
-During the brief snapshot database switch, middleware can return HTTP `503` with
-`Retry-After: 5` for any route before its normal handler runs.
+Durante la breve sostituzione del database, il middleware può restituire HTTP
+`503` con `Retry-After: 5` prima dell'handler normale di qualsiasi route.
 
 ## `GET /webapi/status`
 
-This endpoint probes PostgreSQL but does not contact Prowlarr. Its Prowlarr
-section contains the latest in-process summary from a focused Prowlarr
-operation, or null state before one has run.
+L'endpoint verifica PostgreSQL ma non contatta Prowlarr. La sezione Prowlarr
+contiene l'ultimo riepilogo in memoria, oppure valori nulli prima di
+un'operazione.
 
-| Field                                 | Type            | Meaning                                              |
-| ------------------------------------- | --------------- | ---------------------------------------------------- |
-| `api_version`                         | integer         | WebAPI schema version; currently `1`                 |
-| `application_version`                 | string          | FastAPI application version                          |
-| `database.connected`                  | boolean         | Result of the current database probe                 |
-| `updater.installed_version`           | string or null  | Installed snapshot tag                               |
-| `updater.latest_version`              | string or null  | Last discovered remote tag                           |
-| `updater.enabled`                     | boolean         | Effective automatic-update state                     |
-| `updater.updating`                    | boolean         | Whether an update is running                         |
-| `updater.maintenance`                 | boolean         | Whether the database switch is in progress           |
-| `updater.last_check`                  | string or null  | ISO-8601 timestamp                                   |
-| `updater.next_check`                  | string or null  | ISO-8601 timestamp; null when disabled               |
-| `updater.last_error`                  | string or null  | Last updater error                                   |
-| `result_processing.preset`            | string          | Effective preset                                     |
-| `result_processing.custom_rule_count` | integer         | Number of configured rules, including disabled rules |
-| `prowlarr.configured`                 | boolean         | URL and API key are both effective                   |
-| `prowlarr.connected`                  | boolean or null | Cached connection result                             |
-| `prowlarr.indexer_installed`          | boolean or null | Cached installation result                           |
-| `prowlarr.error`                      | string or null  | Cached sanitized error                               |
+| Campo                                 | Tipo            | Significato                                    |
+| ------------------------------------- | --------------- | ---------------------------------------------- |
+| `api_version`                         | integer         | Versione schema WebAPI, attualmente `1`        |
+| `application_version`                 | string          | Versione dell'applicazione FastAPI             |
+| `database.connected`                  | boolean         | Esito della verifica corrente                  |
+| `updater.installed_version`           | string or null  | Tag snapshot installato                        |
+| `updater.latest_version`              | string or null  | Ultimo tag remoto individuato                  |
+| `updater.enabled`                     | boolean         | Stato effettivo degli aggiornamenti automatici |
+| `updater.updating`                    | boolean         | Aggiornamento in corso                         |
+| `updater.maintenance`                 | boolean         | Sostituzione del database in corso             |
+| `updater.last_check`                  | string or null  | Timestamp ISO-8601 dell'ultimo controllo       |
+| `updater.next_check`                  | string or null  | Prossimo controllo; null se disabilitato       |
+| `updater.last_error`                  | string or null  | Ultimo errore dell'updater                     |
+| `result_processing.preset`            | string          | Preset effettivo                               |
+| `result_processing.custom_rule_count` | integer         | Numero di regole, incluse quelle disabilitate  |
+| `prowlarr.configured`                 | boolean         | URL e API key entrambe effettive               |
+| `prowlarr.connected`                  | boolean or null | Esito della connessione in cache               |
+| `prowlarr.indexer_installed`          | boolean or null | Esito dell'installazione in cache              |
+| `prowlarr.error`                      | string or null  | Errore sanificato in cache                     |
 
-## Settings
+## Impostazioni
 
-`GET /webapi/settings` and a successful `PUT /webapi/settings` return:
+`GET /webapi/settings` e un `PUT /webapi/settings` riuscito restituiscono:
 
-| Field                              | Type                                                           |
-| ---------------------------------- | -------------------------------------------------------------- |
-| `schema_version`                   | integer `1`                                                    |
-| `database_update.enabled`          | boolean                                                        |
-| `database_update.interval_seconds` | integer, 60–604800                                             |
-| `result_processing.preset`         | `unfiltered`, `italian_preferred`, `italian_only`, or `custom` |
-| `result_processing.custom_rules`   | array                                                          |
-| `prowlarr.url`                     | string                                                         |
-| `prowlarr.indexer_url`             | string                                                         |
-| `prowlarr.api_key_configured`      | boolean                                                        |
+| Campo                              | Tipo                                                              |
+| ---------------------------------- | ----------------------------------------------------------------- |
+| `schema_version`                   | integer `1`                                                       |
+| `database_update.enabled`          | boolean                                                           |
+| `database_update.interval_seconds` | integer, 60–604800                                                |
+| `result_processing.preset`         | `unfiltered`, `italian_preferred`, `italian_only` oppure `custom` |
+| `result_processing.custom_rules`   | array                                                             |
+| `prowlarr.url`                     | string                                                            |
+| `prowlarr.indexer_url`             | string                                                            |
+| `prowlarr.api_key_configured`      | boolean                                                           |
 
-`PUT` accepts an optional write-only `prowlarr.api_key`: omission preserves the
-persisted key, a non-empty string replaces it, and an empty string clears it.
-Validation or unknown fields return HTTP `422` with `{ "detail": "..." }`. A
-successful full-settings update also reconfigures the updater and clears cached
-Prowlarr status.
+`PUT` accetta `prowlarr.api_key` facoltativo e di sola scrittura: ometterlo
+conserva la chiave, una stringa non vuota la sostituisce e una stringa vuota la
+cancella. Campi non validi o sconosciuti restituiscono HTTP `422` con
+`{ "detail": "..." }`. Un aggiornamento completo riuscito riconfigura anche
+l'updater e cancella lo stato Prowlarr in cache.
 
-## Result processing
+## Elaborazione dei risultati
 
-Both result-processing routes use this body:
+Entrambe le route usano questo body:
 
 ```json
 {
@@ -82,22 +82,22 @@ Both result-processing routes use this body:
 }
 ```
 
-`GET` returns the effective object. `PUT` returns the validated effective
-object; an invalid preset, rule, field, operator, action, value, or unknown
-field returns HTTP `422` with a detail string.
+`GET` restituisce l'oggetto effettivo. `PUT` restituisce quello convalidato;
+preset, regole, campi, operatori, azioni, valori o campi sconosciuti non validi
+producono HTTP `422` con un dettaglio.
 
-## Prowlarr status
+## Stato Prowlarr
 
-`GET /webapi/prowlarr/status` returns HTTP `200` with all four fields:
+`GET /webapi/prowlarr/status` restituisce HTTP `200` con quattro campi:
 
-| Field               | Type            | Behavior                                                                               |
-| ------------------- | --------------- | -------------------------------------------------------------------------------------- |
-| `configured`        | boolean         | False unless URL and API key are effective                                             |
-| `connected`         | boolean or null | Null when unconfigured; otherwise the live connection result                           |
-| `indexer_installed` | boolean or null | Null when unconfigured or status setup fails; otherwise the live endpoint match result |
-| `error`             | string or null  | Sanitized specific failure or null                                                     |
+| Campo               | Tipo            | Comportamento                                                                 |
+| ------------------- | --------------- | ----------------------------------------------------------------------------- |
+| `configured`        | boolean         | False se URL e API key non sono entrambe effettive                            |
+| `connected`         | boolean or null | Null senza configurazione; altrimenti esito live                              |
+| `indexer_installed` | boolean or null | Null senza configurazione o in caso di errore iniziale; altrimenti esito live |
+| `error`             | string or null  | Motivo sanificato oppure null                                                 |
 
-Normal remote failures remain status data rather than HTTP errors. For example:
+Gli errori remoti normali restano dati di stato invece di errori HTTP:
 
 ```json
 {
@@ -108,30 +108,30 @@ Normal remote failures remain status data rather than HTTP errors. For example:
 }
 ```
 
-Specific safe errors include connection, remote HTTP status, response-size,
-invalid-JSON, and invalid-schema failures. If an error contains the configured
-secret or traceback text, it is replaced with `Prowlarr request failed`.
+Gli errori sicuri specifici includono connessione, stato HTTP remoto, risposta
+troppo grande, JSON non valido e schema non valido. Se il testo contiene il
+segreto configurato o `traceback`, viene sostituito con
+`Prowlarr request failed`.
 
-## Prowlarr commands
+## Comandi Prowlarr
 
-| Route                           | Success body                                                                          | `400`                                         | `502`                                                                            |
-| ------------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
-| `POST /webapi/prowlarr/test`    | `{ "connected": true, "error": null }`                                                | Prowlarr URL or API key missing               | Remote/client failure; `{ "detail": "Prowlarr request failed" }`                 |
-| `POST /webapi/prowlarr/indexer` | `{ "created": boolean, "already_installed": boolean, "indexer_id": integer or null }` | Prowlarr URL, API key, or Indexer URL missing | Schema, test, list, or create failure; `{ "detail": "Prowlarr request failed" }` |
+| Route                           | Risposta in caso di successo                                                          | `400`                               | `502`                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------- |
+| `POST /webapi/prowlarr/test`    | `{ "connected": true, "error": null }`                                                | URL o API key mancanti              | Errore remoto; `{ "detail": "Prowlarr request failed" }` |
+| `POST /webapi/prowlarr/indexer` | `{ "created": boolean, "already_installed": boolean, "indexer_id": integer or null }` | URL, API key o Indexer URL mancanti | Errore remoto; stesso dettaglio stabile                  |
 
-An already-installed indexer returns `created: false` and
-`already_installed: true`. A newly created indexer returns the inverse. The ID
-is null when Prowlarr does not provide an integer ID.
+Un indexer già installato restituisce `created: false` e
+`already_installed: true`; uno appena creato restituisce l'inverso. L'ID è null
+se Prowlarr non fornisce un integer ID.
 
-## Secret behavior
+## Gestione dei segreti
 
-Normal JSON reads never include the saved or environment-provided API key.
-`GET /webapi/settings` exposes only `api_key_configured`; status responses
-expose no key field. Prowlarr command errors always use the stable generic
-detail. Prowlarr status errors may retain a sanitized specific reason, but any
-reason containing the configured key or traceback text is replaced. See the
-[configuration schema](./configuration-schema) for replacement and clear rules.
+Le letture JSON non includono mai la API key salvata o fornita dall'ambiente.
+`GET /webapi/settings` espone solo `api_key_configured` e le risposte di stato
+non hanno un campo chiave. Gli errori dei comandi usano sempre il dettaglio
+generico stabile; gli errori di stato possono mantenere un motivo specifico
+sanificato. Consulta lo [schema di configurazione](./configuration-schema).
 
 ## Torznab
 
-See [Torznab capabilities](./torznab-capabilities) for query and XML details.
+Consulta le [funzionalità Torznab](./torznab-capabilities) per query e XML.

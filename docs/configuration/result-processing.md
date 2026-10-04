@@ -1,23 +1,29 @@
-# Result processing
+# Elaborazione dei risultati
 
-Choose a preset in the WebUI. Start with **Unfiltered** to preserve v1.0 order,
-then add processing only when you need it.
+Scegli un preset nella WebUI. Parti da **Unfiltered** per conservare l'ordine di
+v1.0 e abilita l'elaborazione solo quando serve.
 
-| Preset              | Behavior                                                                                     |
-| ------------------- | -------------------------------------------------------------------------------------------- |
-| `unfiltered`        | Preserves the database query order                                                           |
-| `italian_preferred` | Ranks explicit Italian markers first, then `MULTI`/`DUAL`, without removing fallback results |
-| `italian_only`      | Keeps only titles with explicit Italian markers                                              |
-| `custom`            | Applies enabled score and exclusion rules                                                    |
+| Preset              | Comportamento                                                                                 |
+| ------------------- | --------------------------------------------------------------------------------------------- |
+| `unfiltered`        | Conserva l'ordine della query al database                                                     |
+| `italian_preferred` | Porta prima i marcatori italiani, poi `MULTI`/`DUAL`, senza rimuovere i risultati di fallback |
+| `italian_only`      | Mantiene solo titoli con marcatori italiani espliciti                                         |
+| `custom`            | Applica le regole abilitate di punteggio ed esclusione                                        |
 
-::: warning Downstream selection Ranking ICVDB results does not guarantee that
-Radarr or Sonarr will select the top ICVDB item. Their own profiles, scoring,
-and availability rules still apply. :::
+::: warning Selezione downstream
 
-::: danger Hard filters hide results `italian_only` and custom `exclude` rules
-remove matching results before XML is returned. Prowlarr cannot see or recover
-hidden results. :::
+L'ordine dei risultati ICVDB non garantisce che Radarr o Sonarr scelgano il
+primo elemento: applicano profili, punteggi e regole di disponibilità propri.
 
-Processing is stable for equal scores and local to fixed 1000-row database
-windows. Read [result-processing internals](../how-it-works/result-processing)
-before relying on ranking across deep pagination.
+:::
+
+::: danger I filtri rigidi nascondono risultati
+
+`italian_only` e le regole `exclude` rimuovono gli elementi prima dell'XML.
+Prowlarr non può recuperarli.
+
+:::
+
+L'elaborazione è stabile a parità di punteggio ed è locale a finestre fisse di
+1000 righe. Leggi i [dettagli interni](../how-it-works/result-processing) prima
+di fare affidamento sull'ordinamento nella paginazione profonda.

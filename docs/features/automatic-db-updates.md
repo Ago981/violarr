@@ -1,16 +1,14 @@
-# Automatic database updates
+# Aggiornamenti automatici del database
 
-The application periodically checks the latest release from
-[`xbit18/icvdb-snapshots`](https://github.com/xbit18/icvdb-snapshots), downloads
-the first `.dump` asset, and requires the release asset's `sha256:` digest.
+L'applicazione controlla periodicamente l'ultima release di
+[`xbit18/icvdb-snapshots`](https://github.com/xbit18/icvdb-snapshots), scarica
+il primo asset `.dump` e richiede il digest `sha256:` dell'asset.
 
-The active database remains available during download, dump inspection, restore,
-and candidate validation. Only the final database rename happens in maintenance
-mode.
+Il database attivo resta disponibile durante download, ispezione, ripristino e
+convalida del candidato. Solo la sostituzione finale avviene in manutenzione.
 
-You can disable checks or change the interval in the WebUI. The initial
-bootstrap still needs a valid snapshot before FastAPI can serve a fresh
-installation.
+Puoi disabilitare i controlli o cambiare l'intervallo nella WebUI. Una nuova
+installazione richiede comunque uno snapshot valido prima di avviare FastAPI.
 
-See [snapshot system](../how-it-works/snapshots) and
-[safe updates](../how-it-works/safe-updates) for the full flow.
+Consulta [sistema snapshot](../how-it-works/snapshots) e
+[aggiornamenti sicuri](../how-it-works/safe-updates) per il flusso completo.

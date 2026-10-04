@@ -1,22 +1,21 @@
 # Changelog
 
-## Unreleased — v1.1.0
+## Non rilasciato — v1.1.0
 
-The pending v1.1.0 work adds:
+Il lavoro in corso per v1.1.0 aggiunge:
 
-- persistent schema-v1 WebUI settings with masked Prowlarr secrets;
-- deterministic result-processing presets and custom rules;
-- same-origin `/webapi` endpoints and schema-derived Prowlarr installation;
-- a Vue WebUI served from the single runtime container;
-- this Markdown-first documentation site.
+- impostazioni WebUI persistenti con schema v1 e segreti Prowlarr mascherati;
+- preset deterministici e regole personalizzate per elaborare i risultati;
+- endpoint same-origin `/webapi` e installazione Prowlarr derivata dallo schema;
+- una WebUI Vue servita dallo stesso container di runtime;
+- questo sito di documentazione bilingue basato su Markdown.
 
-The release image has not been published and Docker runtime verification is not
-complete. See the repository
-[`CHANGELOG.md`](https://github.com/xbit18/icvdb-torznab/blob/main/CHANGELOG.md)
-for compatibility details and the authoritative project history.
+L'immagine della release non è stata pubblicata e la verifica Docker non è
+completa. Per i dettagli di compatibilità e la cronologia ufficiale consulta
+[`CHANGELOG.md`](https://github.com/xbit18/violarr/blob/main/CHANGELOG.md).
 
-## v1.0 behavior retained
+## Comportamento v1.0 mantenuto
 
-The `/api` Torznab contract, PostgreSQL 16 runtime, port `8000`, one `/data`
-volume, snapshot source, and candidate-database update safety remain the
-compatibility baseline.
+Il contratto Torznab `/api`, PostgreSQL 16, la porta `8000`, il singolo volume
+`/data`, la sorgente degli snapshot e la sicurezza degli aggiornamenti tramite
+database candidato restano la base di compatibilità.
