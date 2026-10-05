@@ -2,6 +2,9 @@
 
 <img src="docs/public/logo.png" alt="Violarr logo" width="180">
 
+[![GitHub Release](https://img.shields.io/github/v/release/xbit18/violarr?color=blue)](https://github.com/xbit18/violarr/releases)
+[![GitHub License](https://img.shields.io/github/license/xbit18/violarr?color=green)](/LICENSE)
+
 [Italiano](README.md) · [English](README.en.md)
 
 **Violarr lets you use the rich ICVDB database directly with Prowlarr.**
