@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.2 - 2026-10-05
+### Aggiunte
+- supporto per immagini arm64
+  
 ## v1.1.1 — 2026-10-05
 
 v1.1.1 risolve:
