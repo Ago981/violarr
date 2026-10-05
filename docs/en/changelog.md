@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.1.1 — 2026-10-05
+
+v1.1.1 solves:
+ - too small payload limiter for Prowlarr
+ - bug in flow for adding Violarr as Prowlarr indexer
+
+See the repository
+[`CHANGELOG.md`](https://github.com/xbit18/violarr/blob/main/CHANGELOG.md) for
+compatibility details and the complete project history.
+
 ## v1.1.0 — 2026-10-05
 
 v1.1.0 adds:
@@ -9,10 +19,6 @@ v1.1.0 adds:
 - same-origin `/webapi` endpoints and schema-derived Prowlarr installation;
 - a Vue WebUI served from the single runtime container;
 - this bilingual Markdown-first documentation site.
-
-See the repository
-[`CHANGELOG.md`](https://github.com/xbit18/violarr/blob/main/CHANGELOG.md) for
-compatibility details and the complete project history.
 
 ## v1.0 behavior retained
 

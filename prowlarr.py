@@ -9,6 +9,7 @@ from urllib.request import Request, urlopen
 
 DEFAULT_TIMEOUT = 10.0
 DEFAULT_MAX_RESPONSE_BYTES = 1024 * 1024
+PROWLARR_SCHEMA_MAX_RESPONSE_BYTES = 16 * 1024 * 1024
 
 
 class ProwlarrError(RuntimeError):
@@ -79,7 +80,18 @@ class ProwlarrClient:
         self.max_response_bytes = max_response_bytes
         self._opener = opener
 
-    def _request(self, method: str, path: str, payload: Any = None) -> Any:
+    def _request(
+        self,
+        method: str,
+        path: str,
+        payload: Any = None,
+        max_response_bytes: int | None = None,
+    ) -> Any:
+        effective_max_response_bytes = (
+            self.max_response_bytes
+            if max_response_bytes is None
+            else max_response_bytes
+        )
         body = None
         headers = {
             "Accept": "application/json",
@@ -99,17 +111,17 @@ class ProwlarrClient:
                 length = response.headers.get("Content-Length")
                 if length is not None:
                     try:
-                        if int(length) > self.max_response_bytes:
+                        if int(length) > effective_max_response_bytes:
                             raise ProwlarrError("Prowlarr response is too large")
                     except ValueError:
                         pass
-                raw = response.read(self.max_response_bytes + 1)
+                raw = response.read(effective_max_response_bytes + 1)
         except HTTPError as exc:
             raise ProwlarrError(f"Prowlarr returned HTTP {exc.code}") from None
         except (URLError, OSError, socket.timeout, TimeoutError):
             raise ProwlarrError("Unable to connect to Prowlarr") from None
 
-        if len(raw) > self.max_response_bytes:
+        if len(raw) > effective_max_response_bytes:
             raise ProwlarrError("Prowlarr response is too large")
         try:
             return json.loads(raw.decode("utf-8"))
@@ -117,7 +129,11 @@ class ProwlarrClient:
             raise ProwlarrError("Prowlarr returned invalid JSON") from None
 
     def _schemas(self) -> list[dict[str, Any]]:
-        payload = self._request("GET", "/api/v1/indexer/schema")
+        payload = self._request(
+            "GET",
+            "/api/v1/indexer/schema",
+            max_response_bytes=PROWLARR_SCHEMA_MAX_RESPONSE_BYTES,
+        )
         if not isinstance(payload, list) or not all(isinstance(item, dict) for item in payload):
             raise ProwlarrError("Prowlarr returned an invalid indexer schema response")
         return payload
@@ -137,21 +153,40 @@ class ProwlarrClient:
 
     def build_indexer_resource(self) -> dict[str, Any]:
         resource = deepcopy(self._generic_template())
+
         base_url, api_path = split_indexer_url(self.indexer_url)
-        values = {"baseUrl": base_url, "apiPath": api_path, "apiKey": ""}
+
+        values = {
+            "baseUrl": base_url,
+            "apiPath": api_path,
+            "apiKey": "",
+        }
+
         fields = resource.get("fields")
+
         if not isinstance(fields, list):
-            raise ProwlarrError("Prowlarr Generic Torznab schema has invalid fields")
+            raise ProwlarrError(
+                "Prowlarr Generic Torznab schema has invalid fields"
+            )
+
         found = set()
+
         for field in fields:
             if isinstance(field, dict) and field.get("name") in values:
                 field["value"] = values[field["name"]]
                 found.add(field["name"])
+
         missing = set(values) - found
+
         if missing:
             missing_name = sorted(missing)[0]
-            raise ProwlarrError(f"Prowlarr Generic Torznab schema is missing {missing_name}")
+            raise ProwlarrError(
+                f"Prowlarr Generic Torznab schema is missing {missing_name}"
+            )
+
         resource["name"] = "Violarr"
+        resource["appProfileId"] = self._default_app_profile_id()
+
         return resource
 
     def _indexers(self) -> list[dict[str, Any]]:
@@ -212,3 +247,33 @@ class ProwlarrClient:
                 "indexer_installed": False,
                 "error": str(exc),
             }
+
+    def _app_profiles(self) -> list[dict[str, Any]]:
+        payload = self._request("GET", "/api/v1/appprofile")
+
+        if not isinstance(payload, list) or not all(
+            isinstance(item, dict) for item in payload
+        ):
+            raise ProwlarrError(
+                "Prowlarr returned an invalid app profile response"
+            )
+
+        return payload
+
+
+    def _default_app_profile_id(self) -> int:
+        profiles = self._app_profiles()
+
+        for profile in profiles:
+            profile_id = profile.get("id")
+
+            if (
+                isinstance(profile_id, int)
+                and not isinstance(profile_id, bool)
+                and profile_id > 0
+            ):
+                return profile_id
+
+        raise ProwlarrError(
+            "Prowlarr has no valid app profile configured"
+        )

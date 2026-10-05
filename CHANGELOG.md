@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## v1.1.1 — 2026-10-05
+
+### Solved
+ - too small payload limiter for Prowlarr
+ - bug in flow for adding Violarr as Prowlarr indexer
+
 ## v1.1.0 — 2026-10-05
 
 ### Added

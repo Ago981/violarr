@@ -2,7 +2,7 @@ import type { AppStatus, PublicSettings } from '../api/types'
 
 export const statusFixture: AppStatus = {
   api_version: 1,
-  application_version: '1.1.0',
+  application_version: 'test-version',
   database: { connected: true },
   updater: {
     installed_version: 'db-2026-08-21',

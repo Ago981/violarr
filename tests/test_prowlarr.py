@@ -82,6 +82,28 @@ def test_connection_uses_authenticated_schema_endpoint():
     assert 0 < timeout <= 30
 
 
+def test_schema_response_above_default_limit_is_accepted():
+    schema = generic_schema()
+    schema["largePayload"] = "x" * (1024 * 1024)
+    subject, _ = client([Response([schema])])
+
+    subject.test_connection()
+
+
+def test_normal_response_above_default_limit_is_rejected():
+    subject, _ = client([Response([{"largePayload": "x" * (1024 * 1024)}])])
+
+    with pytest.raises(ProwlarrError, match="^Prowlarr response is too large$"):
+        subject._indexers()
+
+
+def test_schema_response_above_schema_limit_is_rejected():
+    subject, _ = client([Response([{"largePayload": "x" * (16 * 1024 * 1024)}])])
+
+    with pytest.raises(ProwlarrError, match="^Prowlarr response is too large$"):
+        subject.test_connection()
+
+
 @pytest.mark.parametrize(
     "response",
     [

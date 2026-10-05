@@ -15,13 +15,14 @@ from fastapi import FastAPI, Request as FastAPIRequest
 from fastapi.responses import JSONResponse
 from psycopg import sql
 from settings import SettingsStore
+from version import APP_VERSION
 
 
 LATEST_RELEASE_URL = os.getenv(
     "SNAPSHOT_LATEST_URL",
     "https://api.github.com/repos/xbit18/icvdb-snapshots/releases/latest",
 )
-SNAPSHOT_USER_AGENT = "Violarr/1.1.0"
+SNAPSHOT_USER_AGENT = f"Violarr/{APP_VERSION}"
 
 
 def _env_bool(name: str, default: bool) -> bool:
