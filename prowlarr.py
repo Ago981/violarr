@@ -153,21 +153,40 @@ class ProwlarrClient:
 
     def build_indexer_resource(self) -> dict[str, Any]:
         resource = deepcopy(self._generic_template())
+
         base_url, api_path = split_indexer_url(self.indexer_url)
-        values = {"baseUrl": base_url, "apiPath": api_path, "apiKey": ""}
+
+        values = {
+            "baseUrl": base_url,
+            "apiPath": api_path,
+            "apiKey": "",
+        }
+
         fields = resource.get("fields")
+
         if not isinstance(fields, list):
-            raise ProwlarrError("Prowlarr Generic Torznab schema has invalid fields")
+            raise ProwlarrError(
+                "Prowlarr Generic Torznab schema has invalid fields"
+            )
+
         found = set()
+
         for field in fields:
             if isinstance(field, dict) and field.get("name") in values:
                 field["value"] = values[field["name"]]
                 found.add(field["name"])
+
         missing = set(values) - found
+
         if missing:
             missing_name = sorted(missing)[0]
-            raise ProwlarrError(f"Prowlarr Generic Torznab schema is missing {missing_name}")
+            raise ProwlarrError(
+                f"Prowlarr Generic Torznab schema is missing {missing_name}"
+            )
+
         resource["name"] = "Violarr"
+        resource["appProfileId"] = self._default_app_profile_id()
+
         return resource
 
     def _indexers(self) -> list[dict[str, Any]]:
@@ -228,3 +247,33 @@ class ProwlarrClient:
                 "indexer_installed": False,
                 "error": str(exc),
             }
+
+    def _app_profiles(self) -> list[dict[str, Any]]:
+        payload = self._request("GET", "/api/v1/appprofile")
+
+        if not isinstance(payload, list) or not all(
+            isinstance(item, dict) for item in payload
+        ):
+            raise ProwlarrError(
+                "Prowlarr returned an invalid app profile response"
+            )
+
+        return payload
+
+
+    def _default_app_profile_id(self) -> int:
+        profiles = self._app_profiles()
+
+        for profile in profiles:
+            profile_id = profile.get("id")
+
+            if (
+                isinstance(profile_id, int)
+                and not isinstance(profile_id, bool)
+                and profile_id > 0
+            ):
+                return profile_id
+
+        raise ProwlarrError(
+            "Prowlarr has no valid app profile configured"
+        )
