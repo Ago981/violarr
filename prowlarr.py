@@ -9,6 +9,7 @@ from urllib.request import Request, urlopen
 
 DEFAULT_TIMEOUT = 10.0
 DEFAULT_MAX_RESPONSE_BYTES = 1024 * 1024
+PROWLARR_SCHEMA_MAX_RESPONSE_BYTES = 16 * 1024 * 1024
 
 
 class ProwlarrError(RuntimeError):
@@ -79,7 +80,18 @@ class ProwlarrClient:
         self.max_response_bytes = max_response_bytes
         self._opener = opener
 
-    def _request(self, method: str, path: str, payload: Any = None) -> Any:
+    def _request(
+        self,
+        method: str,
+        path: str,
+        payload: Any = None,
+        max_response_bytes: int | None = None,
+    ) -> Any:
+        effective_max_response_bytes = (
+            self.max_response_bytes
+            if max_response_bytes is None
+            else max_response_bytes
+        )
         body = None
         headers = {
             "Accept": "application/json",
@@ -99,17 +111,17 @@ class ProwlarrClient:
                 length = response.headers.get("Content-Length")
                 if length is not None:
                     try:
-                        if int(length) > self.max_response_bytes:
+                        if int(length) > effective_max_response_bytes:
                             raise ProwlarrError("Prowlarr response is too large")
                     except ValueError:
                         pass
-                raw = response.read(self.max_response_bytes + 1)
+                raw = response.read(effective_max_response_bytes + 1)
         except HTTPError as exc:
             raise ProwlarrError(f"Prowlarr returned HTTP {exc.code}") from None
         except (URLError, OSError, socket.timeout, TimeoutError):
             raise ProwlarrError("Unable to connect to Prowlarr") from None
 
-        if len(raw) > self.max_response_bytes:
+        if len(raw) > effective_max_response_bytes:
             raise ProwlarrError("Prowlarr response is too large")
         try:
             return json.loads(raw.decode("utf-8"))
@@ -117,7 +129,11 @@ class ProwlarrClient:
             raise ProwlarrError("Prowlarr returned invalid JSON") from None
 
     def _schemas(self) -> list[dict[str, Any]]:
-        payload = self._request("GET", "/api/v1/indexer/schema")
+        payload = self._request(
+            "GET",
+            "/api/v1/indexer/schema",
+            max_response_bytes=PROWLARR_SCHEMA_MAX_RESPONSE_BYTES,
+        )
         if not isinstance(payload, list) or not all(isinstance(item, dict) for item in payload):
             raise ProwlarrError("Prowlarr returned an invalid indexer schema response")
         return payload
