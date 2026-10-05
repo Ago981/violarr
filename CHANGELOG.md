@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented here.
 
+## v1.1.2 - 2026-10-05
+### Added
+- support for arm64 image
+
 ## v1.1.1 — 2026-10-05
 
 ### Solved
