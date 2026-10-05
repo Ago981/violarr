@@ -7,6 +7,7 @@ import pytest
 
 from prowlarr import ProwlarrError
 from settings import SettingsStore
+from version import APP_VERSION
 from webapi import create_webapi_router
 
 
@@ -68,7 +69,7 @@ def web_client(tmp_path):
         "api_key": "never-return-this",
     }
     store.save(settings)
-    app = FastAPI(version="1.1.0")
+    app = FastAPI(version=APP_VERSION)
     app.state.settings_store = store
     app.state.snapshot_updater = FakeUpdater()
     app.state.database_probe = lambda: True
@@ -84,7 +85,7 @@ def test_status_contains_stable_health_summary_without_secrets(web_client):
 
     assert response.status_code == 200
     assert response.json()["api_version"] == 1
-    assert response.json()["application_version"] == "1.1.0"
+    assert response.json()["application_version"] == APP_VERSION
     assert response.json()["database"]["connected"] is True
     assert response.json()["result_processing"] == {"preset": "unfiltered", "custom_rule_count": 0}
     assert response.json()["prowlarr"] == {

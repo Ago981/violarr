@@ -11,6 +11,7 @@ import pytest
 
 from settings import SettingsStore
 from snapshot_updater import Snapshot, SnapshotUpdater, install_snapshot_updater
+from version import APP_VERSION
 
 
 def make_store(tmp_path, environ=None):
@@ -44,8 +45,8 @@ def test_snapshot_requests_use_versioned_violarr_user_agent(tmp_path, monkeypatc
     path.unlink()
 
     assert [request.get_header("User-agent") for request in requests] == [
-        "Violarr/1.1.0",
-        "Violarr/1.1.0",
+        f"Violarr/{APP_VERSION}",
+        f"Violarr/{APP_VERSION}",
     ]
 
 
