@@ -1,7 +1,15 @@
 import os
+from collections.abc import Mapping
+from pathlib import Path
 from snapshot_updater import install_snapshot_updater
-from fastapi import FastAPI, Query, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 import psycopg
+from result_processor import process_results
+from settings import SettingsStore
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from webapi import create_webapi_router
 from xml.etree.ElementTree import (
     Element,
     SubElement,
@@ -9,8 +17,10 @@ from xml.etree.ElementTree import (
     register_namespace,
 )
 
-app = FastAPI()
-install_snapshot_updater(app)
+SETTINGS_STORE = SettingsStore()
+app = FastAPI(version="1.1.0")
+app.state.settings_store = SETTINGS_STORE
+install_snapshot_updater(app, SETTINGS_STORE)
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "host.docker.internal"),
@@ -24,9 +34,120 @@ TORZNAB_NS = "http://torznab.com/schemas/2015/feed"
 
 register_namespace("torznab", TORZNAB_NS)
 
+RESULT_CANDIDATE_WINDOW = 1000
+DEFAULT_FRONTEND_DIST = Path("/app/frontend-dist")
+FRONTEND_DIST_ENV = "FRONTEND_DIST_DIR"
+_FRONTEND_RESERVED_PREFIXES = {
+    "api",
+    "docs",
+    "openapi.json",
+    "redoc",
+    "webapi",
+}
+
+
+def frontend_dist_path(environ: Mapping[str, str] | None = None) -> Path:
+    values = os.environ if environ is None else environ
+    return Path(values.get(FRONTEND_DIST_ENV, str(DEFAULT_FRONTEND_DIST)))
+
+
+def _accepts_html(request: Request) -> bool:
+    for item in request.headers.get("accept", "").lower().split(","):
+        media_type, *parameters = (part.strip() for part in item.split(";"))
+        if media_type not in {"text/html", "application/xhtml+xml"}:
+            continue
+        quality = next(
+            (
+                parameter.partition("=")[2]
+                for parameter in parameters
+                if parameter.partition("=")[0].strip() == "q"
+            ),
+            "1",
+        )
+        try:
+            if float(quality) <= 0:
+                continue
+        except ValueError:
+            continue
+        return True
+    return False
+
+
+def _safe_frontend_path(path: str) -> bool:
+    if "\\" in path or "\0" in path:
+        return False
+    return all(segment not in {".", ".."} for segment in path.split("/"))
+
+
+def _frontend_fallback_allowed(path: str, request: Request) -> bool:
+    if not _accepts_html(request):
+        return False
+    if not path or path.split("/", 1)[0] in _FRONTEND_RESERVED_PREFIXES:
+        return False
+    return "." not in path.rsplit("/", 1)[-1]
+
+
+def install_frontend(
+    application: FastAPI,
+    dist_dir: str | os.PathLike[str] | None = None,
+) -> bool:
+    """Install low-priority SPA routes when a complete frontend build exists."""
+    directory = Path(dist_dir) if dist_dir is not None else frontend_dist_path()
+    index_file = directory / "index.html"
+    if not index_file.is_file():
+        return False
+
+    static_files = StaticFiles(directory=directory, check_dir=True)
+
+    async def frontend_response(frontend_path: str, request: Request):
+        first_segment = frontend_path.split("/", 1)[0]
+        if first_segment in _FRONTEND_RESERVED_PREFIXES or not _safe_frontend_path(
+            frontend_path
+        ):
+            raise HTTPException(status_code=404)
+
+        if not frontend_path and _accepts_html(request):
+            return FileResponse(index_file)
+        if not frontend_path:
+            raise HTTPException(status_code=404)
+
+        try:
+            response = await static_files.get_response(frontend_path, request.scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code != 404:
+                raise
+        else:
+            if response.status_code != 404:
+                return response
+        if _frontend_fallback_allowed(frontend_path, request):
+            return FileResponse(index_file)
+        raise HTTPException(status_code=404)
+
+    @application.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
+    async def frontend_root(request: Request):
+        return await frontend_response("", request)
+
+    @application.api_route(
+        "/{frontend_path:path}", methods=["GET", "HEAD"], include_in_schema=False
+    )
+    async def frontend_route(frontend_path: str, request: Request):
+        return await frontend_response(frontend_path, request)
+
+    return True
+
 
 def get_conn():
     return psycopg.connect(**DB_CONFIG)
+
+
+def database_probe() -> bool:
+    with get_conn() as connection:
+        connection.execute("SELECT 1").fetchone()
+    return True
+
+
+app.state.database_probe = database_probe
+app.include_router(create_webapi_router())
 
 
 def normalize_imdb(imdbid: str | None):
@@ -406,7 +527,7 @@ def make_caps():
 
     server = SubElement(caps, "server")
     server.set("version", "1.0")
-    server.set("title", "ICVDB Local Indexer")
+    server.set("title", "Violarr")
 
     limits = SubElement(caps, "limits")
     limits.set("max", "200")
@@ -533,12 +654,12 @@ def make_rss(rows):
     SubElement(
         channel,
         "title",
-    ).text = "ICVDB Local Indexer"
+    ).text = "Violarr"
 
     SubElement(
         channel,
         "description",
-    ).text = "Local ICVDB Torznab indexer"
+    ).text = "L’integrazione Prowlarr per Il Corsaro Viola"
 
     SubElement(
         channel,
@@ -693,6 +814,37 @@ def make_rss(rows):
     )
 
 
+def query_processed(query, query_args, limit, offset):
+    processing = SETTINGS_STORE.load()["result_processing"]
+    if processing["preset"] == "unfiltered":
+        return query(*query_args, limit, offset)
+
+    # Rank within fixed, non-overlapping database windows. This keeps memory
+    # bounded, supports arbitrary offsets, and fetches both windows when a page
+    # crosses a boundary; ranking intentionally remains local to each window.
+    request_end = offset + limit
+    first_window = (offset // RESULT_CANDIDATE_WINDOW) * RESULT_CANDIDATE_WINDOW
+    last_window = (
+        (request_end - 1) // RESULT_CANDIDATE_WINDOW
+    ) * RESULT_CANDIDATE_WINDOW
+    page = []
+    for window_offset in range(
+        first_window,
+        last_window + RESULT_CANDIDATE_WINDOW,
+        RESULT_CANDIDATE_WINDOW,
+    ):
+        rows = query(*query_args, RESULT_CANDIDATE_WINDOW, window_offset)
+        processed = process_results(
+            rows,
+            processing["preset"],
+            processing["custom_rules"],
+        )
+        local_start = max(offset - window_offset, 0)
+        local_end = min(request_end - window_offset, RESULT_CANDIDATE_WINDOW)
+        page.extend(processed[local_start:local_end])
+    return page
+
+
 @app.get("/api")
 def torznab(
     t: str = Query("search"),
@@ -725,8 +877,9 @@ def torznab(
     )
 
     if t == "search":
-        rows = query_generic(
-            q,
+        rows = query_processed(
+            query_generic,
+            (q,),
             limit,
             offset,
         )
@@ -737,10 +890,9 @@ def torznab(
         )
 
     if t == "movie":
-        rows = query_movie(
-            imdb_id,
-            tmdbid,
-            q,
+        rows = query_processed(
+            query_movie,
+            (imdb_id, tmdbid, q),
             limit,
             offset,
         )
@@ -751,11 +903,9 @@ def torznab(
         )
 
     if t == "tvsearch":
-        rows = query_tv(
-            imdb_id,
-            q,
-            season,
-            ep,
+        rows = query_processed(
+            query_tv,
+            (imdb_id, q, season, ep),
             limit,
             offset,
         )
@@ -769,3 +919,6 @@ def torznab(
         content=make_rss([]),
         media_type="application/xml",
     )
+
+
+install_frontend(app)

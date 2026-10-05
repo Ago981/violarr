@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 import threading
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
 
@@ -14,12 +14,14 @@ import psycopg
 from fastapi import FastAPI, Request as FastAPIRequest
 from fastapi.responses import JSONResponse
 from psycopg import sql
+from settings import SettingsStore
 
 
 LATEST_RELEASE_URL = os.getenv(
     "SNAPSHOT_LATEST_URL",
     "https://api.github.com/repos/xbit18/icvdb-snapshots/releases/latest",
 )
+SNAPSHOT_USER_AGENT = "Violarr/1.1.0"
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -48,9 +50,11 @@ class Snapshot:
 
 
 class SnapshotUpdater:
-    def __init__(self) -> None:
-        self.enabled = _env_bool("DB_AUTO_UPDATE", True)
-        self.interval = int(os.getenv("DB_UPDATE_INTERVAL", "86400"))
+    def __init__(self, settings_store: SettingsStore | None = None) -> None:
+        self.settings_store = settings_store or SettingsStore()
+        update_settings = self.settings_store.load()["database_update"]
+        self.enabled = update_settings["enabled"]
+        self.interval = update_settings["interval_seconds"]
         self.start_delay = int(os.getenv("DB_UPDATE_START_DELAY", "60"))
 
         self.db_host = os.getenv("DB_HOST", "127.0.0.1")
@@ -66,10 +70,76 @@ class SnapshotUpdater:
 
         self.maintenance = threading.Event()
         self._update_lock = threading.Lock()
+        self._state_lock = threading.Lock()
+        self._lifecycle_lock = threading.Lock()
         self._task: asyncio.Task | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._wake_event: asyncio.Event | None = None
+        self._latest_version: str | None = None
+        self._updating = False
+        self._last_check: datetime | None = None
+        self._next_check: datetime | None = None
+        self._last_error: str | None = None
 
     def _log(self, message: str) -> None:
         print(f"[snapshot-updater] {message}", flush=True)
+
+    @staticmethod
+    def _now() -> datetime:
+        return datetime.now(timezone.utc)
+
+    def _set_next_check(self, value: datetime | None) -> None:
+        with self._state_lock:
+            self._next_check = value
+
+    def _refresh_configuration(self) -> None:
+        settings = self.settings_store.load()["database_update"]
+        with self._state_lock:
+            self.enabled = settings["enabled"]
+            self.interval = settings["interval_seconds"]
+            if not self.enabled:
+                self._next_check = None
+
+    def _signal_wake(self) -> None:
+        with self._lifecycle_lock:
+            loop = self._loop
+            wake_event = self._wake_event
+            if loop is None or wake_event is None:
+                return
+            try:
+                loop.call_soon_threadsafe(wake_event.set)
+            except RuntimeError:
+                # Shutdown may close the event loop after it was published.
+                return
+
+    def reconfigure(self) -> None:
+        self._refresh_configuration()
+        with self._lifecycle_lock:
+            task_active = self._task is not None
+        if self.enabled and task_active:
+            self._set_next_check(self._now())
+        self._signal_wake()
+
+    def status(self) -> dict:
+        try:
+            installed = self.read_local_version()
+        except OSError:
+            installed = None
+        with self._state_lock:
+            return {
+                "installed_version": installed,
+                "latest_version": self._latest_version,
+                "enabled": self.enabled,
+                "updating": self._updating,
+                "maintenance": self.maintenance.is_set(),
+                "last_check": self._iso(self._last_check),
+                "next_check": self._iso(self._next_check) if self.enabled else None,
+                "last_error": self._last_error,
+            }
+
+    @staticmethod
+    def _iso(value: datetime | None) -> str | None:
+        return value.isoformat() if value is not None else None
 
     def _connection_kwargs(self, dbname: str) -> dict:
         return {
@@ -90,7 +160,7 @@ class SnapshotUpdater:
             LATEST_RELEASE_URL,
             headers={
                 "Accept": "application/vnd.github+json",
-                "User-Agent": "icvdb-torznab",
+                "User-Agent": SNAPSHOT_USER_AGENT,
             },
         )
 
@@ -175,7 +245,7 @@ class SnapshotUpdater:
 
         request = Request(
             snapshot.url,
-            headers={"User-Agent": "icvdb-torznab"},
+            headers={"User-Agent": SNAPSHOT_USER_AGENT},
         )
 
         try:
@@ -416,6 +486,7 @@ class SnapshotUpdater:
     # ------------------------------------------------------------------
 
     def update_once(self) -> None:
+        self._refresh_configuration()
         if not self.enabled:
             return
 
@@ -425,10 +496,15 @@ class SnapshotUpdater:
 
         dump_path: Path | None = None
         candidate = f"{self.db_name}_candidate"
+        with self._state_lock:
+            self._updating = True
 
         try:
             latest = self.get_latest_snapshot()
             local = self.read_local_version()
+            with self._state_lock:
+                self._latest_version = latest.version
+                self._last_error = None
 
             self._log(
                 f"Versione locale: {local or 'non registrata'}"
@@ -457,7 +533,9 @@ class SnapshotUpdater:
             )
 
         except Exception as exc:
-            self._log(f"ERRORE aggiornamento: {exc}")
+            self._log(f"Snapshot update failed ({type(exc).__name__}).")
+            with self._state_lock:
+                self._last_error = "Snapshot update failed"
 
             # Se il candidate esiste ancora, viene rimosso.
             try:
@@ -468,55 +546,88 @@ class SnapshotUpdater:
                     )
             except Exception as cleanup_error:
                 self._log(
-                    "Impossibile rimuovere il database temporaneo: "
-                    f"{cleanup_error}"
+                    "Unable to remove the temporary database "
+                    f"({type(cleanup_error).__name__})."
                 )
 
         finally:
             if dump_path is not None:
                 dump_path.unlink(missing_ok=True)
 
+            with self._state_lock:
+                self._updating = False
+                self._last_check = self._now()
             self._update_lock.release()
 
-    async def _update_loop(self) -> None:
+    async def _update_loop(self, wake_event: asyncio.Event) -> None:
         if self.start_delay > 0:
-            await asyncio.sleep(self.start_delay)
+            try:
+                await asyncio.wait_for(wake_event.wait(), timeout=self.start_delay)
+                wake_event.clear()
+            except asyncio.TimeoutError:
+                pass
 
         while True:
-            await asyncio.to_thread(self.update_once)
+            self._refresh_configuration()
+            if not self.enabled:
+                self._set_next_check(None)
+                await wake_event.wait()
+                wake_event.clear()
+                continue
 
-            await asyncio.sleep(self.interval)
+            await asyncio.to_thread(self.update_once)
+            self._set_next_check(self._now() + timedelta(seconds=self.interval))
+            try:
+                await asyncio.wait_for(wake_event.wait(), timeout=self.interval)
+                wake_event.clear()
+            except asyncio.TimeoutError:
+                pass
 
     async def start(self) -> None:
-        if not self.enabled:
-            self._log("Aggiornamenti automatici disabilitati.")
-            return
-
-        self._log(
-            "Aggiornamenti automatici attivi "
-            f"(intervallo: {self.interval}s)."
-        )
-
-        self._task = asyncio.create_task(
-            self._update_loop()
-        )
+        with self._lifecycle_lock:
+            if self._task is not None:
+                return
+            self._loop = asyncio.get_running_loop()
+            self._wake_event = asyncio.Event()
+            wake_event = self._wake_event
+            self._task = asyncio.create_task(self._update_loop(wake_event))
+        self._refresh_configuration()
+        if self.enabled:
+            self._set_next_check(
+                self._now() + timedelta(seconds=max(self.start_delay, 0))
+            )
+            self._log(
+                "Automatic updates enabled "
+                f"(interval: {self.interval}s)."
+            )
+        else:
+            self._log("Automatic updates disabled.")
 
     async def stop(self) -> None:
-        if self._task is None:
-            return
+        with self._lifecycle_lock:
+            task = self._task
+            if task is None:
+                return
 
-        self._task.cancel()
+        task.cancel()
 
         try:
-            await self._task
+            await task
         except asyncio.CancelledError:
             pass
 
-        self._task = None
+        with self._lifecycle_lock:
+            if self._task is task:
+                self._task = None
+                self._wake_event = None
+                self._loop = None
 
 
-def install_snapshot_updater(app: FastAPI) -> SnapshotUpdater:
-    updater = SnapshotUpdater()
+def install_snapshot_updater(
+    app: FastAPI,
+    settings_store: SettingsStore | None = None,
+) -> SnapshotUpdater:
+    updater = SnapshotUpdater(settings_store=settings_store)
 
     @app.middleware("http")
     async def snapshot_update_middleware(

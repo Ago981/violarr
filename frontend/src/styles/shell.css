@@ -1,0 +1,120 @@
+.topbar {
+  position: fixed;
+  z-index: 30;
+  inset: 0 0 auto 0;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text);
+  font-weight: 750;
+  text-decoration: none;
+  margin-right: auto;
+}
+.brand-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+.icon-button {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  color: var(--text);
+  border-radius: 8px;
+  min-width: 36px;
+  height: 36px;
+  cursor: pointer;
+}
+.language-select select,
+.theme-select select {
+  max-width: 9rem;
+}
+.sidebar {
+  position: fixed;
+  z-index: 25;
+  top: 58px;
+  bottom: 0;
+  left: 0;
+  width: 238px;
+  padding: 18px 12px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.sidebar nav {
+  display: grid;
+  gap: 3px;
+}
+.sidebar a {
+  padding: 9px 11px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--muted);
+  font-weight: 600;
+}
+.sidebar a:hover {
+  background: var(--background);
+  color: var(--text);
+}
+.sidebar a.router-link-active {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.sidebar-note {
+  margin: auto 10px 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.main {
+  margin-left: 238px;
+  padding: 86px 28px 40px;
+  min-width: 0;
+}
+.menu-button {
+  display: none;
+}
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+.page-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.page-heading h1 {
+  font-size: 28px;
+  line-height: 1.15;
+  margin: 2px 0 4px;
+}
+.page-heading p {
+  margin: 0;
+  color: var(--muted);
+}
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  font-size: 11px !important;
+  font-weight: 800;
+  color: var(--primary) !important;
+}
+.eyebrow--prowlarr {
+  color: var(--prowlarr) !important;
+}
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}

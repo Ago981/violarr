@@ -1,0 +1,295 @@
+# Violarr rebrand and Italian-first localization
+
+## Objective
+
+Rebrand the application as **Violarr**, make Italian the default user-facing language while retaining English, rename the public GitHub repository to `xbit18/violarr`, and publish project documentation below `/violarr/` without breaking existing runtime installations.
+
+## Problem and why
+
+The current public identity (`icvdb-torznab`) describes the implementation rather than the product. User-facing content is English-only and the Pages base is tied to the old repository name. Violarr needs a coherent identity and Italian-first experience while preserving the stable technical contracts already used by v1.0 installations.
+
+## Brand
+
+- Product name: **Violarr**
+- Subtitle: **L’integrazione Prowlarr per Il Corsaro Viola**
+- Technical description: self-hosted Torznab indexer connecting ICVDB to Prowlarr
+
+## Authorized scope
+
+- Rebrand user-visible application, documentation, metadata, and Prowlarr display name.
+- Add Italian-default and English-selectable WebUI localization.
+- Make VitePress Italian-first with an English mirror under `/en/`.
+- Make `README.md` Italian-first and provide `README.en.md`.
+- Rename `xbit18/icvdb-torznab` to `xbit18/violarr`, update links, Pages base, local origin, and the authorized feature branch.
+- Publish only `ghcr.io/xbit18/violarr`; do not retain a legacy GHCR publishing alias.
+
+## Compatibility constraints
+
+The following contracts remain unchanged:
+
+- `/data` and `/data/state/settings.json`
+- settings schema version 1
+- `ICVDB_*` and `DB_*` environment variables
+- `/api` and `/webapi`
+- PostgreSQL schema and snapshot semantics
+- named volume `icvdb_torznab_data`
+- snapshot repository `xbit18/icvdb-snapshots`
+- legacy theme key `icvdb-theme`
+- operational Compose aliases required by existing Prowlarr URLs
+
+Internal code identifiers, API contracts, comments, and commit messages remain English unless localization requires a user-visible message.
+
+## Delivery strategy
+
+- Strategy: `ask-on-risk`, previously resolved to `feature-branch-chain` for oversized work.
+- Forecast: 2,200–3,400 authored changed lines.
+- Boundaries: three coherent implementation commits plus one remote repository transition.
+- No pull request, release, tag, or merge is authorized.
+- Documentation translation may use a size exception inside its coherent slice rather than artificial splitting.
+- Conservative cadence: one inventory, one implementation pass per work unit, and one focused verification boundary per work unit. No frequent polling.
+
+## Tasks
+
+### VIO-01 — Runtime branding and bilingual WebUI
+
+- [x] Replace public product branding with Violarr and the approved subtitle.
+- [x] Add stable localization keys with Italian default and English selection.
+- [x] Persist language client-side without changing server settings schema.
+- [x] Preserve and continue reading `icvdb-theme`.
+- [x] Rename the Torznab/Prowlarr display name without changing endpoint-based idempotency.
+- [x] Update behavior-focused frontend and backend tests.
+
+Route: delegated. Trigger: multi-file implementation and read-before-write preparation.
+
+Acceptance:
+
+- First load is Italian.
+- English can be selected and persists across reloads.
+- Navigation, views, validation, feedback, theme labels, and document metadata are localized.
+- Existing theme preference remains effective.
+- Existing Prowlarr indexers remain detectable by endpoint.
+
+Checks:
+
+```text
+python -m pytest tests/test_prowlarr.py tests/test_torznab_regression.py
+npm --prefix frontend run format:check
+npm --prefix frontend run typecheck
+npm --prefix frontend test -- --run
+npm --prefix frontend run build
+```
+
+Evidence:
+
+- Observed RED: focused i18n test failed before `frontend/src/i18n/` existed.
+- Observed GREEN: 23 frontend tests passed; formatting, typecheck, and production build passed.
+- Backend branding regressions: 28 tests passed in one isolated `uv` environment.
+- Independent verification found and closed one localization-boundary issue for server-origin errors.
+- RDD: globally disabled. Native risk assessment was unassessable because authorized untracked files required declaration; independent verification was used conservatively.
+- Work-unit commit: `e979460` (`feat(webui): add Violarr localization`).
+
+### VIO-02 — Distribution metadata and compatibility
+
+- [x] Update package and image metadata to Violarr.
+- [x] Keep stable volume, paths, environment variables, routes, snapshot source, and operational aliases.
+- [x] Publish only the new Violarr GHCR image.
+- [x] Update architecture, changelog, and agent guidance where public names changed.
+- [x] Strengthen container contract tests for preserved identifiers.
+
+Route: delegated. Trigger: coordinated multi-file metadata and compatibility edits.
+
+Acceptance:
+
+- Existing v1.0 data and configuration contracts are unchanged.
+- Future publishing exposes only `ghcr.io/xbit18/violarr`.
+- Snapshot updater still uses `xbit18/icvdb-snapshots`.
+
+Checks:
+
+```text
+python -m pytest tests/test_container_contract.py tests/test_webapi.py tests/test_prowlarr.py
+docker compose config
+```
+
+Evidence:
+
+- Observed RED: OCI metadata contract failed before the Violarr title was added.
+- Observed GREEN: 37 focused Python tests passed; independent container-contract verification passed 11 tests.
+- `docker compose config` resolved `ghcr.io/xbit18/violarr:latest` while retaining service/container `icvdb-torznab`, `/data`, and volume `icvdb_torznab_data`.
+- Release workflow uses one metadata/build path for only `ghcr.io/xbit18/violarr`, with least-privilege permissions and no shell steps.
+- The former GHCR package is intentionally not maintained; live publishing remains unexecuted until a release is explicitly authorized.
+- Work-unit commit: `55bc917` (`build: target Violarr image`).
+
+### VIO-03 — Italian README and bilingual Pages
+
+- [x] Rewrite `README.md` as the Italian primary entry point.
+- [x] Add `README.en.md` with an obvious language switch.
+- [x] Configure VitePress root locale as Italian and `/en/` as English.
+- [x] Set Pages base to `/violarr/` and update repository/edit links.
+- [x] Translate the complete root documentation and preserve the English content under `docs/en/`.
+- [x] Update all clone, image, container, and documentation links consistently.
+
+Route: delegated. Trigger: broad documentation rewrite across more than four files.
+
+Acceptance:
+
+- Italian and English navigation cover equivalent documentation.
+- Internal links build correctly under `/violarr/` and `/violarr/en/`.
+- No published link points to the obsolete Pages base.
+- Examples preserve stable technical identifiers where compatibility requires them.
+
+Checks:
+
+```text
+npm --prefix docs run format:check
+npm --prefix docs run docs:build
+```
+
+Evidence:
+
+- Italian `README.md` and all root documentation pages have equivalent English versions in `README.en.md` and `docs/en/`.
+- VitePress uses `/violarr/`, Italian root, English `/en/`, and locale-specific header, sidebar, outline, and previous/next labels.
+- Fixed 23 malformed custom containers whose inline markers captured later page content and disrupted pagination flow.
+- Final `format:check` and VitePress production build passed; rendered Italian and English pages show correct navigation, sidebar, callout boundaries, and previous/next controls.
+- Work-unit commit: `41fffa7` (`docs: add bilingual Violarr guide`).
+
+### VIO-04 — GitHub repository transition and final bounded verification
+
+- [x] Rename `xbit18/icvdb-torznab` to `xbit18/violarr` using the authorized active GitHub session.
+- [x] Update local `origin` to `https://github.com/xbit18/violarr.git`.
+- [x] Push the authorized feature branch only.
+- [x] Confirm repository identity and exact Pages-ready URLs once.
+- [x] Run one final bounded verification covering Python, frontend, docs, Compose, image build, capabilities, and a real database search.
+
+Route: delegated verification plus parent-owned remote state operations. Trigger: full suites/builds belong to fresh workers; GitHub state remains parent-owned.
+
+Acceptance:
+
+- Repository is available at `https://github.com/xbit18/violarr`.
+- Documentation is configured for `https://xbit18.github.io/violarr/`.
+- No release, tag, pull request, or merge is created.
+- All required checks report observed results, including any skipped or environmental failures.
+
+Checks:
+
+```text
+python -m pytest
+npm --prefix frontend run format:check
+npm --prefix frontend run typecheck
+npm --prefix frontend test -- --run
+npm --prefix frontend run build
+npm --prefix docs run format:check
+npm --prefix docs run docs:build
+docker compose config
+docker build -t violarr:verify .
+curl -fsS 'http://localhost:8000/api?t=caps'
+curl -fsS 'http://localhost:8000/api?t=search&q=avatar'
+```
+
+Evidence:
+
+- GitHub reports `xbit18/violarr` at `https://github.com/xbit18/violarr`; local fetch and push remotes use `https://github.com/xbit18/violarr.git`.
+- VitePress remains configured for `https://xbit18.github.io/violarr/`; deployment still requires the documentation commit to reach `main`.
+- Python suite passed 99 tests in an isolated `uv` environment; the direct interpreter lacked pytest and the first isolated run lacked the `httpx` test dependency.
+- Frontend formatting, type checking, 23 tests, and production build passed; documentation formatting and production build passed.
+- Compose configuration resolved `ghcr.io/xbit18/violarr:latest`; the image built locally, the container started, caps returned `<caps>`, and an `avatar` search returned populated Torznab RSS from PostgreSQL.
+- Verification left the tracked worktree clean. No release, tag, pull request, or merge was created.
+- GitHub accepted `feature/v1.1.0` through transition and verification commit `f76e9bd`.
+
+### VIO-05 — Release-readiness cleanup
+
+- [x] Remove stale pre-release and pending-verification wording from release-facing documentation.
+- [x] Replace the obsolete snapshot updater User-Agent with the Violarr identity and cover it with a deterministic test.
+- [x] Verify bilingual documentation formatting/build and the Python regression suite.
+- [x] Confirm no active release-facing references still describe v1.1.0 as unreleased.
+
+Route: delegated direct writer. Trigger: coordinated documentation, code, and behavior-test changes span multiple non-trivial files.
+
+Acceptance:
+
+- Changelog, README, architecture, installation, Docker, and troubleshooting pages describe v1.1.0 as release-ready.
+- Snapshot requests identify the application as Violarr.
+- Focused RED, GREEN, full Python tests, and bilingual documentation checks report observed results.
+
+Evidence:
+
+- Observed RED: the focused behavior test showed both snapshot HTTP requests still sent `icvdb-torznab`.
+- Observed GREEN: both requests now send `Violarr/1.1.0`; focused test and independent spot check passed.
+- Full regression passed 100 Python tests; documentation formatting and production build passed.
+- Release-facing search found no stale prerelease or pending-verification claims; the sole remaining match is this historical ODD checklist.
+- Native assessment classified the 160-line candidate as medium risk and under budget while RDD remained globally disabled.
+- Work-unit commit: `5b5356e` (`fix(release): finalize v1.1.0 readiness`).
+
+### VIO-06 — Task-oriented documentation
+
+- [x] Rewrite README and documentation landing pages around the user outcome and fastest path to the WebUI.
+- [x] Make installation, first setup, Prowlarr, WebUI settings, updates, and troubleshooting the primary user journey.
+- [x] Move protocol, endpoint, persistence, database, snapshot, and implementation material into a clearly separated advanced section.
+- [x] Remove duplicated commands and explanations that do not help users complete a task.
+- [x] Preserve concise Italian/English semantic parity and operational data-loss warnings.
+
+Route: delegated direct writer. Trigger: coordinated information-architecture and content changes span multiple documentation files.
+
+Forecast: 200–350 authored changed lines, excluding generated output. One coherent documentation work unit.
+
+Acceptance:
+
+- A new user can understand Violarr, start it, open the WebUI, and connect Prowlarr without reading implementation details.
+- WebUI documentation explains what each user-facing section controls and what action the user should take.
+- Raw endpoints, curl diagnostics, Torznab, PostgreSQL, snapshots, and persistence internals appear only in advanced or troubleshooting context.
+- Destructive-volume warnings remain visible exactly where an update, reset, or removal can lose data.
+- Italian and English navigation and content remain aligned.
+
+Evidence:
+
+- Removed 608 lines of duplicated or implementation-first prose while adding 292 concise, task-oriented lines.
+- README and landing pages now lead from the Violarr outcome to one quick start, the WebUI, and Prowlarr setup.
+- Navigation now separates `Per iniziare`, `Usare Violarr`, `Gestione e recupero`, and `Avanzato e sviluppo`, with exact English parity.
+- Basic-page audit found no raw WebAPI, curl, PostgreSQL, schema, or protocol explanations; `/data` remains only in required Docker commands and `/api` only in the required Prowlarr container URL.
+- Documentation formatting and production build passed; independent build spot check passed in 2.02 seconds.
+- Native assessment classified the documentation candidate as medium risk because of VitePress configuration and due by slice budget while RDD remained globally disabled.
+- Applied the cached `feature-branch-chain` strategy as three reviewable work units: `2daa2df` (getting started), `2e88689` (WebUI guides), and `b4b0678` (navigation and advanced separation).
+
+### VIO-07 — Brand assets and AI disclosure
+
+- [x] Organize the supplied logo and favicon assets for reuse.
+- [x] Display the logo and favicon in the WebUI and documentation site.
+- [x] Add the logo to both README variants.
+- [x] Add a concise bilingual documentation disclaimer acknowledging generative AI use.
+- [x] Verify frontend and documentation formatting, tests, and production builds.
+
+Route: delegated direct writer. Trigger: coordinated binary assets, WebUI, documentation, and bilingual content changes span multiple files.
+
+Acceptance:
+
+- WebUI and VitePress use the supplied favicon and show the supplied Violarr logo without layout regressions.
+- GitHub renders the logo in both README variants.
+- Italian and English documentation disclose that generative AI helped create and enable the project without overstating authorship or guarantees.
+- Asset paths work under the `/violarr/` Pages base and the WebUI production bundle.
+
+Evidence:
+
+- Moved the canonical 768×768 logo and 32×32 favicon to `docs/public/`; byte-identical copies in `frontend/public/` have matching SHA-256 hashes.
+- README variants render the canonical logo; VitePress and WebUI production builds emit both assets at their expected base-safe paths.
+- Observed RED before the WebUI logo existed, then GREEN after integration; the full 23-test frontend suite, formatting, type checking, and production build passed.
+- Documentation formatting and production build passed; an independent verifier repeated the focused AppShell tests and VitePress build successfully.
+- Italian and English documentation footers contain concise, semantically equivalent generative-AI disclosures.
+- The existing narrow-screen layout intentionally hides redundant visible brand text while retaining the logo and accessible link label.
+- Native assessment was unassessable only because intended assets were still untracked; conservative independent verification was completed before commit.
+- Work-unit commit: `611f6ce` (`feat(brand): integrate visual identity`).
+
+## Progress
+
+- [x] User approved Violarr branding, subtitle, Italian-first localization, repository rename, Pages path, and use of the active GitHub session.
+- [x] Read-only inventory completed with compatibility boundaries and delivery forecast.
+- [x] VIO-01 complete.
+- [x] VIO-02 complete.
+- [x] VIO-03 complete.
+- [x] VIO-04 complete.
+- [x] VIO-05 complete.
+- [x] VIO-06 complete.
+- [x] VIO-07 complete.
+
+## Next step
+
+Push the completed visual identity work unit. Tagging and publishing the release remain user decisions.

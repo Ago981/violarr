@@ -2,7 +2,7 @@
 
 ## Project overview
 
-`icvdb-torznab` is a lightweight bridge between a local ICVDB PostgreSQL database and Torznab-compatible clients such as Prowlarr.
+Violarr is a lightweight bridge between a local ICVDB PostgreSQL database and Torznab-compatible clients such as Prowlarr. Its public repository is `xbit18/violarr`, and its primary image is `ghcr.io/xbit18/violarr`.
 
 The application:
 
@@ -23,6 +23,19 @@ The project does not scrape websites, download torrents, manage media libraries,
 - Docker / Docker Compose
 
 The project is intentionally small. Most application logic currently lives in `app.py`.
+
+## Public identity and compatibility
+
+Use **Violarr** for public product naming and `ghcr.io/xbit18/violarr` as the published image.
+
+The following legacy technical identifiers are intentional compatibility contracts and must not be renamed during branding work:
+
+- Compose service and container alias `icvdb-torznab`;
+- named volume `icvdb_torznab_data` and container path `/data`;
+- settings path `/data/state/settings.json` and schema version 1;
+- `ICVDB_*` and `DB_*` environment variables;
+- `/api` and `/webapi` routes;
+- snapshot repository `xbit18/icvdb-snapshots`.
 
 ## Important files
 
@@ -45,7 +58,7 @@ DB_USER
 DB_PASSWORD
 ```
 
-Inside the Torznab container, database connectivity is configured as:
+Inside the Violarr container, database connectivity is configured as:
 
 ```text
 DB_HOST=db
@@ -312,7 +325,7 @@ download PostgreSQL dump
       ↓
 restore into local PostgreSQL
       ↓
-icvdb-torznab
+Violarr
       ↓
 Prowlarr
 ```
