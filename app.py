@@ -9,6 +9,7 @@ import psycopg
 from result_processor import process_results
 from settings import SettingsStore
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from version import APP_VERSION
 from webapi import create_webapi_router
 from xml.etree.ElementTree import (
     Element,
@@ -18,7 +19,7 @@ from xml.etree.ElementTree import (
 )
 
 SETTINGS_STORE = SettingsStore()
-app = FastAPI(version="1.1.0")
+app = FastAPI(version=APP_VERSION)
 app.state.settings_store = SETTINGS_STORE
 install_snapshot_updater(app, SETTINGS_STORE)
 
