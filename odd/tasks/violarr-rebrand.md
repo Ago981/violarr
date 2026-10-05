@@ -220,6 +220,36 @@ Evidence:
 - Native assessment classified the 160-line candidate as medium risk and under budget while RDD remained globally disabled.
 - Work-unit commit: `5b5356e` (`fix(release): finalize v1.1.0 readiness`).
 
+### VIO-06 — Task-oriented documentation
+
+- [x] Rewrite README and documentation landing pages around the user outcome and fastest path to the WebUI.
+- [x] Make installation, first setup, Prowlarr, WebUI settings, updates, and troubleshooting the primary user journey.
+- [x] Move protocol, endpoint, persistence, database, snapshot, and implementation material into a clearly separated advanced section.
+- [x] Remove duplicated commands and explanations that do not help users complete a task.
+- [x] Preserve concise Italian/English semantic parity and operational data-loss warnings.
+
+Route: delegated direct writer. Trigger: coordinated information-architecture and content changes span multiple documentation files.
+
+Forecast: 200–350 authored changed lines, excluding generated output. One coherent documentation work unit.
+
+Acceptance:
+
+- A new user can understand Violarr, start it, open the WebUI, and connect Prowlarr without reading implementation details.
+- WebUI documentation explains what each user-facing section controls and what action the user should take.
+- Raw endpoints, curl diagnostics, Torznab, PostgreSQL, snapshots, and persistence internals appear only in advanced or troubleshooting context.
+- Destructive-volume warnings remain visible exactly where an update, reset, or removal can lose data.
+- Italian and English navigation and content remain aligned.
+
+Evidence:
+
+- Removed 608 lines of duplicated or implementation-first prose while adding 292 concise, task-oriented lines.
+- README and landing pages now lead from the Violarr outcome to one quick start, the WebUI, and Prowlarr setup.
+- Navigation now separates `Per iniziare`, `Usare Violarr`, `Gestione e recupero`, and `Avanzato e sviluppo`, with exact English parity.
+- Basic-page audit found no raw WebAPI, curl, PostgreSQL, schema, or protocol explanations; `/data` remains only in required Docker commands and `/api` only in the required Prowlarr container URL.
+- Documentation formatting and production build passed; independent build spot check passed in 2.02 seconds.
+- Native assessment classified the documentation candidate as medium risk because of VitePress configuration and due by slice budget while RDD remained globally disabled.
+- Applied the cached `feature-branch-chain` strategy as three reviewable work units: `2daa2df` (getting started), `2e88689` (WebUI guides), and `b4b0678` (navigation and advanced separation).
+
 ## Progress
 
 - [x] User approved Violarr branding, subtitle, Italian-first localization, repository rename, Pages path, and use of the active GitHub session.
@@ -229,7 +259,8 @@ Evidence:
 - [x] VIO-03 complete.
 - [x] VIO-04 complete.
 - [x] VIO-05 complete.
+- [x] VIO-06 complete.
 
 ## Next step
 
-Push the completed release-readiness work unit. Tagging and publishing the release remain user decisions.
+Push the completed documentation work units. Tagging and publishing the release remain user decisions.
