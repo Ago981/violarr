@@ -19,14 +19,10 @@
   text-decoration: none;
   margin-right: auto;
 }
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  color: white;
-  background: var(--primary);
+.brand-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 .icon-button {
   border: 1px solid var(--border);

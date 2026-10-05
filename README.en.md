@@ -1,5 +1,7 @@
 # Violarr
 
+<img src="docs/public/logo.png" alt="Violarr logo" width="180">
+
 [Italiano](README.md) · [English](README.en.md)
 
 **Violarr lets you use the rich ICVDB database directly with Prowlarr.**

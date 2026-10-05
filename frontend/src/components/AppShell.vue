@@ -98,7 +98,7 @@ const links = [
         class="brand"
         to="/"
         :aria-label="`${locale.t('app.title')} ${locale.t('navigation.dashboard')}`"
-        ><span class="brand-mark">V</span><span>Violarr</span></RouterLink
+        ><img class="brand-logo" :src="'/logo.png'" alt="" /><span>Violarr</span></RouterLink
       >
       <label class="language-select"
         ><span class="sr-only">{{ locale.t('language.label') }}</span

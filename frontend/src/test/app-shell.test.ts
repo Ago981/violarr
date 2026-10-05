@@ -62,6 +62,9 @@ describe('mobile application shell', () => {
     await router.isReady()
     render(AppShell, { global: { plugins: [router] } })
 
+    const logo = document.querySelector<HTMLImageElement>('.brand-logo')
+    expect(logo?.getAttribute('src')).toBe('/logo.png')
+    expect(logo?.getAttribute('alt')).toBe('')
     expect(screen.getByRole('link', { name: 'Panoramica' })).toBeTruthy()
     await fireEvent.update(screen.getByRole('combobox', { name: 'Lingua' }), 'en')
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeTruthy()

@@ -1,5 +1,7 @@
 # Violarr
 
+<img src="docs/public/logo.png" alt="Logo di Violarr" width="180">
+
 [Italiano](README.md) · [English](README.en.md)
 
 **Violarr ti permette di usare direttamente con Prowlarr il ricco database

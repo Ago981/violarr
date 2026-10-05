@@ -88,7 +88,10 @@ export default defineConfig({
   base: '/violarr/',
   cleanUrls: true,
   lastUpdated: true,
-  head: [['meta', { name: 'theme-color', content: '#7c3aed' }]],
+  head: [
+    ['link', { rel: 'icon', type: 'image/png', href: '/violarr/favicon.png' }],
+    ['meta', { name: 'theme-color', content: '#7c3aed' }],
+  ],
   locales: {
     root: {
       label: 'Italiano',
@@ -136,8 +139,9 @@ export default defineConfig({
           text: 'Modifica questa pagina su GitHub',
         },
         footer: {
-          message: 'Distribuito con licenza MIT.',
-          copyright: 'Documentazione Violarr',
+          message:
+            'Violarr è stato creato e reso possibile anche grazie a strumenti di intelligenza artificiale generativa, sotto direzione e revisione umana.',
+          copyright: 'Documentazione Violarr · Licenza MIT',
         },
       },
     },
@@ -169,13 +173,15 @@ export default defineConfig({
           text: 'Edit this page on GitHub',
         },
         footer: {
-          message: 'Released under the MIT License.',
-          copyright: 'Violarr documentation',
+          message:
+            'Violarr was created and made possible in part through generative AI tools, under human direction and review.',
+          copyright: 'Violarr documentation · MIT License',
         },
       },
     },
   },
   themeConfig: {
+    logo: '/logo.png',
     socialLinks: [
       { icon: 'github', link: 'https://github.com/xbit18/violarr' },
     ],
