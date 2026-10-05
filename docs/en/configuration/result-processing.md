@@ -1,14 +1,16 @@
 # Result processing
 
-Choose a preset in the WebUI. Start with **Unfiltered** to preserve v1.0 order,
-then add processing only when you need it.
+Choose what Prowlarr receives under **Result processing**. Start with
+**Unfiltered** and change preset only when you know which results you want to
+promote or hide.
 
-| Preset              | Behavior                                                                                     |
-| ------------------- | -------------------------------------------------------------------------------------------- |
-| `unfiltered`        | Preserves the database query order                                                           |
-| `italian_preferred` | Ranks explicit Italian markers first, then `MULTI`/`DUAL`, without removing fallback results |
-| `italian_only`      | Keeps only titles with explicit Italian markers                                              |
-| `custom`            | Applies enabled score and exclusion rules                                                    |
+- **Unfiltered** — starting choice; includes every result in its original order.
+- **Italian preferred** — promotes likely Italian releases without hiding the
+  alternatives.
+- **Italian only** — shows only titles with explicit Italian markers.
+- **Custom** — applies your [custom rules](../features/custom-filters).
+
+Select **Save result processing** and wait for the confirmation message.
 
 ::: warning Downstream selection
 
@@ -19,11 +21,10 @@ top ICVDB item. Their own profiles, scoring, and availability rules still apply.
 
 ::: danger Hard filters hide results
 
-`italian_only` and custom `exclude` rules remove matching results before XML is
-returned. Prowlarr cannot see or recover hidden results.
+**Italian only** and custom **Exclude** rules remove results before Prowlarr can
+receive them.
 
 :::
 
-Processing is stable for equal scores and local to fixed 1000-row database
-windows. Read [result-processing internals](../how-it-works/result-processing)
-before relying on ranking across deep pagination.
+Read more about [Italian ranking](../features/italian-ranking) or the
+[technical details](../how-it-works/result-processing).

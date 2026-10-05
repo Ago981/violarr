@@ -1,18 +1,18 @@
 # Aggiornamenti del database
 
-Nella WebUI usa **Aggiornamenti database** per abilitare o disabilitare i
-controlli periodici e impostare un intervallo tra 60 e 604800 secondi.
+Apri **Aggiornamenti database** nella WebUI per mantenere aggiornati i dati
+usati nelle ricerche.
 
-| Impostazione                | Valore predefinito |
-| --------------------------- | ------------------ |
-| Abilitati                   | `true`             |
-| Intervallo                  | `86400` secondi    |
-| Ritardo del primo controllo | `60` secondi       |
+1. Lascia **Aggiornamenti automatici** attivi per la maggior parte delle
+   installazioni.
+2. Imposta l'intervallo in ore: `24` è la scelta predefinita; sono accettati
+   valori da 1 minuto a 7 giorni.
+3. Premi **Salva impostazioni aggiornamenti** e attendi la conferma.
 
-Il ritardo iniziale è configurabile solo tramite ambiente. Stato e intervallo
-sono salvati nello schema v1, salvo override con `DB_AUTO_UPDATE` o
-`DB_UPDATE_INTERVAL`.
+La scheda **Snapshot database** in **Panoramica** mostra versione installata,
+ultima versione rilevata, ultimo e prossimo controllo. **Aggiornamento** o
+**Manutenzione attiva** sono stati temporanei; **Errore** richiede di leggere il
+messaggio e i log.
 
-Gli aggiornamenti usano un database candidato e restituiscono brevemente HTTP
-`503` solo durante la sostituzione finale. Consulta gli
+Per i dettagli tecnici consulta gli
 [aggiornamenti sicuri](../how-it-works/safe-updates).

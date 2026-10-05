@@ -1,30 +1,29 @@
-# WebUI
+# Panoramica WebUI
 
-Apri `http://HOST:8000/` per controllare il servizio e gestire le impostazioni
-supportate. La WebUI è un'applicazione Vue same-origin servita da FastAPI nello
-stesso container.
+Apri `http://HOST:8000/` per controllare Violarr e modificarne le impostazioni.
 
-## Sezioni disponibili
+## Cosa trovi
 
-| Sezione                | Scopo                                                       |
-| ---------------------- | ----------------------------------------------------------- |
-| Dashboard              | Stato di database, updater, risultati e cache Prowlarr      |
-| Aggiornamenti database | Abilitazione e intervallo degli aggiornamenti               |
-| Elaborazione risultati | Selezione del preset e modifica delle regole personalizzate |
-| Prowlarr               | Connessione, verifica dell'accesso e aggiunta dell'indexer  |
+- **Panoramica** mostra stato ed errori. Tutte le schede devono essere sane.
+- **Generali** mostra identità, sicurezza e indirizzi. Non richiede azioni.
+- **Aggiornamenti database** gestisce i controlli. Di norma: ogni 24 ore.
+- **Elaborazione risultati** gestisce preset e regole. Inizia senza filtri.
+- **Prowlarr** salva la connessione. Lo stato atteso è **Connesso**.
+- **Avanzate** è una vista in sola lettura e non richiede azioni.
 
-Le modifiche sono salvate in `/data/state/settings.json`. La UI non rilegge mai
-una API key Prowlarr salvata: riceve solo `api_key_configured`.
+## Salvare e verificare
 
-::: tip Valori controllati dall'ambiente
+- Ogni pagina salva solo quando premi il relativo pulsante **Salva**.
+- Attendi il messaggio di conferma prima di cambiare pagina.
+- La chiave API salvata non viene mostrata: usa **Sostituisci chiave** solo per
+  cambiarla.
 
-Le variabili d'ambiente hanno priorità sulle impostazioni persistenti. Un valore
-di runtime può risultare attivo nella UI senza essere scritto in
-`settings.json`.
+## Se lo stato non è operativo
 
-:::
+1. Premi **Aggiorna** in **Panoramica**.
+2. Leggi l'errore nella scheda rossa e apri l'area indicata dal problema.
+3. Se l'errore resta, consulta la [risoluzione dei problemi](../troubleshooting)
+   e i log del container.
 
-## Esposizione di rete
-
-La WebUI e il backend `/webapi` non hanno autenticazione. Esponili solo su una
-rete affidabile o dietro un reverse proxy autenticato.
+La WebUI non ha autenticazione: esponila solo su una rete affidabile o dietro un
+reverse proxy autenticato.

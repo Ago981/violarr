@@ -1,14 +1,18 @@
 # Elaborazione dei risultati
 
-Scegli un preset nella WebUI. Parti da **Unfiltered** per conservare l'ordine di
-v1.0 e abilita l'elaborazione solo quando serve.
+Scegli in **Elaborazione risultati** cosa mostrare a Prowlarr. Parti da **Senza
+filtri** e cambia preset solo quando sai quali risultati vuoi favorire o
+nascondere.
 
-| Preset              | Comportamento                                                                                 |
-| ------------------- | --------------------------------------------------------------------------------------------- |
-| `unfiltered`        | Conserva l'ordine della query al database                                                     |
-| `italian_preferred` | Porta prima i marcatori italiani, poi `MULTI`/`DUAL`, senza rimuovere i risultati di fallback |
-| `italian_only`      | Mantiene solo titoli con marcatori italiani espliciti                                         |
-| `custom`            | Applica le regole abilitate di punteggio ed esclusione                                        |
+- **Senza filtri** — scelta iniziale; include tutti i risultati nell'ordine
+  originale.
+- **Italiano preferito** — porta in alto le versioni probabilmente italiane
+  senza nascondere le altre.
+- **Solo italiano** — mostra solo titoli con indicatori italiani espliciti.
+- **Personalizzato** — applica le
+  [regole personalizzate](../features/custom-filters).
+
+Premi **Salva elaborazione risultati** e attendi il messaggio di conferma.
 
 ::: warning Selezione downstream
 
@@ -19,11 +23,10 @@ primo elemento: applicano profili, punteggi e regole di disponibilità propri.
 
 ::: danger I filtri rigidi nascondono risultati
 
-`italian_only` e le regole `exclude` rimuovono gli elementi prima dell'XML.
-Prowlarr non può recuperarli.
+**Solo italiano** e le regole **Escludi** rimuovono i risultati prima che
+Prowlarr possa riceverli.
 
 :::
 
-L'elaborazione è stabile a parità di punteggio ed è locale a finestre fisse di
-1000 righe. Leggi i [dettagli interni](../how-it-works/result-processing) prima
-di fare affidamento sull'ordinamento nella paginazione profonda.
+Approfondisci la [priorità italiana](../features/italian-ranking) o i
+[dettagli tecnici](../how-it-works/result-processing).

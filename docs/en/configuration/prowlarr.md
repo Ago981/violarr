@@ -1,16 +1,17 @@
-# Prowlarr integration
+# Connect Prowlarr
 
-Configure Prowlarr from the WebUI instead of manually creating a Generic Torznab
-indexer.
+Connect Prowlarr from the WebUI and add Violarr as an indexer.
 
 ## Quick path
 
-1. Open **Prowlarr** in the WebUI.
-2. Enter the Prowlarr URL, for example `http://prowlarr:9696`.
-3. Enter a Prowlarr API key.
-4. Enter the Indexer URL that **Prowlarr can reach**, for example
+1. In Prowlarr, copy the key from **Settings → General → Security → API Key**.
+2. Open **Prowlarr** in the Violarr WebUI.
+3. Enter the **Prowlarr URL**, for example `http://prowlarr:9696`.
+4. Enter the **API key**.
+5. Enter the **Indexer URL as seen by Prowlarr**, for example
    `http://icvdb-torznab:8000/api`.
-5. Save, choose **Test connection**, then choose **Add indexer**.
+6. Select **Save Prowlarr settings**, then **Test connection**.
+7. When the status is **Connected**, select **Add Violarr to Prowlarr**.
 
 <div class="prowlarr-note">
 <strong>Container networking:</strong> <code>localhost</code> inside the Prowlarr
@@ -18,46 +19,15 @@ container refers to Prowlarr itself. Use a shared Docker network service name or
 another address reachable from that container.
 </div>
 
-## What Test and Add do
+## Expected result
 
-**Test connection** requests Prowlarr's `/api/v1/indexer/schema` endpoint with
-the `X-Api-Key` header.
+- The WebUI shows **Connected**.
+- Prowlarr contains an indexer named **Violarr**.
+- Adding it again does not create duplicates.
 
-**Add indexer** follows Prowlarr's current schema instead of constructing an
-unversioned request by hand:
+## Change the key
 
-1. Fetch the indexer schemas and select the Generic Torznab template whose
-   implementation is `Torznab`.
-2. Deep-clone that template and set its display name to `Violarr`.
-3. Split the configured Indexer URL into `baseUrl` and `apiPath`, and populate
-   those schema fields. Set the Torznab `apiKey` field to an empty string
-   because Violarr does not authenticate `/api`.
-4. Read existing indexers and compare Torznab implementations by normalized
-   origin and API path.
-5. If no match exists, ask Prowlarr to test the completed resource and then
-   create it.
-
-An existing normalized endpoint is returned without another test or create
-request. Repeated Add operations are therefore idempotent.
-
-## API-key handling
-
-- The key is saved only when entered.
-- Leaving the replacement field absent preserves the persisted key.
-- Sending an empty replacement clears the persisted key.
-- Read responses contain `api_key_configured`, never the key.
-- Runtime API-key overrides are never copied into the settings file.
-
-## Failure responses
-
-`GET /webapi/prowlarr/status` always returns HTTP `200`. Connection and remote
-response failures appear as `connected: false` with an `error` string in the
-status payload. Normally that string keeps a sanitized specific reason such as
-an HTTP status, connection failure, oversized response, invalid JSON, or invalid
-schema.
-
-If a status error contains the configured API key or the word `traceback`, the
-WebAPI replaces it with `Prowlarr request failed`. Unexpected client setup
-errors are also reduced to that message. The `POST` test and indexer routes use
-HTTP `502` with the same stable detail for remote Prowlarr failures; missing
-required configuration returns HTTP `400`.
+- A saved key remains active until you select **Replace key** or **Clear the
+  saved API key**, then save.
+- If the test fails, check the URLs, key, and container networking in
+  [troubleshooting](../troubleshooting).
