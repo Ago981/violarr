@@ -250,6 +250,34 @@ Evidence:
 - Native assessment classified the documentation candidate as medium risk because of VitePress configuration and due by slice budget while RDD remained globally disabled.
 - Applied the cached `feature-branch-chain` strategy as three reviewable work units: `2daa2df` (getting started), `2e88689` (WebUI guides), and `b4b0678` (navigation and advanced separation).
 
+### VIO-07 — Brand assets and AI disclosure
+
+- [x] Organize the supplied logo and favicon assets for reuse.
+- [x] Display the logo and favicon in the WebUI and documentation site.
+- [x] Add the logo to both README variants.
+- [x] Add a concise bilingual documentation disclaimer acknowledging generative AI use.
+- [x] Verify frontend and documentation formatting, tests, and production builds.
+
+Route: delegated direct writer. Trigger: coordinated binary assets, WebUI, documentation, and bilingual content changes span multiple files.
+
+Acceptance:
+
+- WebUI and VitePress use the supplied favicon and show the supplied Violarr logo without layout regressions.
+- GitHub renders the logo in both README variants.
+- Italian and English documentation disclose that generative AI helped create and enable the project without overstating authorship or guarantees.
+- Asset paths work under the `/violarr/` Pages base and the WebUI production bundle.
+
+Evidence:
+
+- Moved the canonical 768×768 logo and 32×32 favicon to `docs/public/`; byte-identical copies in `frontend/public/` have matching SHA-256 hashes.
+- README variants render the canonical logo; VitePress and WebUI production builds emit both assets at their expected base-safe paths.
+- Observed RED before the WebUI logo existed, then GREEN after integration; the full 23-test frontend suite, formatting, type checking, and production build passed.
+- Documentation formatting and production build passed; an independent verifier repeated the focused AppShell tests and VitePress build successfully.
+- Italian and English documentation footers contain concise, semantically equivalent generative-AI disclosures.
+- The existing narrow-screen layout intentionally hides redundant visible brand text while retaining the logo and accessible link label.
+- Native assessment was unassessable only because intended assets were still untracked; conservative independent verification was completed before commit.
+- Work-unit commit: `611f6ce` (`feat(brand): integrate visual identity`).
+
 ## Progress
 
 - [x] User approved Violarr branding, subtitle, Italian-first localization, repository rename, Pages path, and use of the active GitHub session.
@@ -260,7 +288,8 @@ Evidence:
 - [x] VIO-04 complete.
 - [x] VIO-05 complete.
 - [x] VIO-06 complete.
+- [x] VIO-07 complete.
 
 ## Next step
 
-Push the completed documentation work units. Tagging and publishing the release remain user decisions.
+Push the completed visual identity work unit. Tagging and publishing the release remain user decisions.
