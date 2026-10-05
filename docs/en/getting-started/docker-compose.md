@@ -1,5 +1,8 @@
 # Docker Compose
 
+Start and update Violarr with a Compose file while retaining data across
+recreations.
+
 ## Compose file
 
 ```yaml
@@ -12,10 +15,6 @@ services:
       - '8000:8000'
     volumes:
       - icvdb_data:/data
-    environment:
-      DB_AUTO_UPDATE: 'true'
-      DB_UPDATE_INTERVAL: '86400'
-
 volumes:
   icvdb_data:
     name: icvdb_torznab_data

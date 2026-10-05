@@ -1,35 +1,17 @@
 # First setup
 
-## Quick path
+Complete the initial setup from the WebUI.
 
-1. Wait for the initial snapshot restore to finish in the container logs.
-2. Open `http://localhost:8000/`.
-3. Confirm that the dashboard reports the database as connected.
-4. Choose a [result-processing preset](../configuration/result-processing).
-5. Configure and test [Prowlarr](../configuration/prowlarr).
+1. Open `http://localhost:8000/`.
+2. Under **Dashboard**, confirm that the service is **Healthy**.
+3. Keep **Unfiltered** to start, or choose a
+   [result-processing preset](../configuration/result-processing).
+4. [Connect Prowlarr](../configuration/prowlarr).
 
-Test Torznab directly:
-
-```bash
-curl 'http://localhost:8000/api?t=caps'
-curl -s 'http://localhost:8000/api?t=search&q=avatar&limit=10'
-```
-
-## What the first start creates
-
-```text
-/data/
-├── postgres/                PostgreSQL 16 cluster
-└── state/
-    ├── settings.json        schema v1 WebUI settings
-    └── snapshot-version     installed snapshot tag
-```
-
-Settings are written atomically. Runtime environment overrides affect the
-effective configuration but do not overwrite stored values.
+If the service is not healthy, select **Refresh**. If the status stays red, open
+[troubleshooting](../troubleshooting).
 
 ## Security before sharing
 
-There is no user authentication for the WebUI, WebAPI, or Torznab endpoint. Do
-not publish port `8000` directly to the internet. Use a trusted LAN, host
-firewall, or authenticated reverse proxy.
+The WebUI has no authentication. Do not publish port `8000` directly to the
+internet. Use a trusted LAN or an authenticated reverse proxy.

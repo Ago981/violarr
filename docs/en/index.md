@@ -3,41 +3,29 @@ layout: home
 
 hero:
   name: Violarr
-  text: The Prowlarr integration for Il Corsaro Viola
-  tagline:
-    Run PostgreSQL, the Torznab API, database updates, and the WebUI in one
-    container.
+  text: Use the ICVDB database directly with Prowlarr
+  tagline: Start Violarr, open the WebUI, and connect Prowlarr in a few steps.
   actions:
     - theme: brand
-      text: Install with Docker
+      text: Start Violarr
       link: /en/getting-started/installation
     - theme: alt
-      text: Configure Prowlarr
-      link: /en/configuration/prowlarr
+      text: Open the WebUI guide
+      link: /en/configuration/webui
 
 features:
-  - title: Torznab compatible
-    details:
-      Search movies, TV, and anime from Prowlarr through the established /api
-      endpoint.
-  - title: Useful result processing
-    details:
-      Prefer or require explicit Italian markers, or build bounded custom score
-      and exclusion rules.
-  - title: Safe snapshot updates
-    details:
-      Validate a candidate database before a brief maintenance-only switch, with
-      rollback on failure.
+  - title: Everything in your browser
+    details: Check status, connect Prowlarr, and save settings from the WebUI.
+  - title: Results that suit you
+    details: Prefer Italian releases, filter results, or create custom rules.
+  - title: A database ready to use
+    details: Check the installed version and manage automatic updates.
 ---
 
 ## Start here
 
-Violarr is a thin adapter between an ICVDB PostgreSQL snapshot and
-Torznab-compatible clients. It does not download torrents or manage a media
-library.
-
 1. [Start the container](/en/getting-started/installation).
-2. Open the WebUI at `http://localhost:8000`.
+2. Open `http://localhost:8000/` in your browser.
 3. [Connect Prowlarr](/en/configuration/prowlarr).
 
 ::: danger Network exposure

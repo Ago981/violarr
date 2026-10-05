@@ -1,7 +1,8 @@
 # Installation
 
-Run one container with one persistent volume. No external PostgreSQL service or
-Docker socket is required.
+Start Violarr and reach the WebUI with one command.
+
+You need Docker and an internet connection for the first start.
 
 ## Quick path
 
@@ -14,22 +15,15 @@ docker run -d \
   ghcr.io/xbit18/violarr:latest
 ```
 
-The first start initializes PostgreSQL 16, downloads and validates the latest
-ICVDB snapshot, restores it, and then starts FastAPI. Bootstrap can take time.
+The first start can take a few minutes. Follow its progress with
+`docker logs -f icvdb-torznab`.
 
 When the service is ready:
 
-- WebUI: `http://localhost:8000/`
-- Torznab: `http://localhost:8000/api`
-- WebAPI: `http://localhost:8000/webapi`
-
-## Persistent data
-
-Mount exactly one volume at `/data`. It holds the PostgreSQL cluster and state
-files. Replacing the container is safe when the volume is retained; deleting the
-volume deletes the local database and settings.
+- the logs report that the service is ready;
+- the WebUI opens at `http://localhost:8000/`;
+- the dashboard shows the database as connected.
 
 ## Next step
 
-Continue with [first setup](./first-setup) or use the
-[Docker Compose example](./docker-compose).
+Continue with [first setup](./first-setup).

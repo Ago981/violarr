@@ -1,35 +1,17 @@
 # Prima configurazione
 
-## Procedura rapida
+Completa la configurazione iniziale dalla WebUI.
 
-1. Attendi nei log il completamento del ripristino iniziale.
-2. Apri `http://localhost:8000/`.
-3. Verifica che la dashboard indichi il database come connesso.
-4. Scegli un [preset di elaborazione](../configuration/result-processing).
-5. Configura e verifica [Prowlarr](../configuration/prowlarr).
+1. Apri `http://localhost:8000/`.
+2. In **Panoramica**, verifica che il servizio sia **Operativo**.
+3. Lascia **Senza filtri** per iniziare, oppure scegli un
+   [preset di elaborazione](../configuration/result-processing).
+4. [Collega Prowlarr](../configuration/prowlarr).
 
-Prova direttamente Torznab:
-
-```bash
-curl 'http://localhost:8000/api?t=caps'
-curl -s 'http://localhost:8000/api?t=search&q=avatar&limit=10'
-```
-
-## Cosa crea il primo avvio
-
-```text
-/data/
-├── postgres/                PostgreSQL 16 cluster
-└── state/
-    ├── settings.json        schema v1 WebUI settings
-    └── snapshot-version     installed snapshot tag
-```
-
-Le impostazioni sono scritte atomicamente. Gli override d'ambiente modificano la
-configurazione effettiva, ma non sovrascrivono i valori memorizzati.
+Se il servizio non è operativo, premi **Aggiorna**. Se lo stato resta rosso,
+apri la [risoluzione dei problemi](../troubleshooting).
 
 ## Sicurezza prima della condivisione
 
-WebUI, WebAPI ed endpoint Torznab non hanno autenticazione. Non pubblicare la
-porta `8000` direttamente su Internet: usa una LAN affidabile, il firewall
-dell'host o un reverse proxy autenticato.
+La WebUI non ha autenticazione. Non pubblicare la porta `8000` direttamente su
+Internet: usa una LAN affidabile o un reverse proxy autenticato.
