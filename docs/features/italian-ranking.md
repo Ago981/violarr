@@ -1,7 +1,7 @@
 # Priorità ai risultati italiani
 
-Il preset `italian_preferred` porta in alto i titoli con marcatori riconosciuti
-senza rimuovere i risultati di fallback.
+Scegli **Italiano preferito** per portare in alto i titoli con marcatori
+riconosciuti senza nascondere le alternative.
 
 ## Ordine
 
@@ -13,7 +13,7 @@ I token sono sequenze senza distinzione tra maiuscole e minuscole di lettere e
 cifre ASCII. Così `ITA` non corrisponde all'interno di parole non correlate. A
 parità di punteggio resta l'ordine del database.
 
-`italian_only` mantiene solo corrispondenze `ITA`, `ITALIAN` o `ITALIANO`.
+**Solo italiano** mantiene solo corrispondenze `ITA`, `ITALIAN` o `ITALIANO`.
 `MULTI` e `DUAL` sono indizi, non prove della presenza dell'audio italiano.
 
 ::: warning Ambito

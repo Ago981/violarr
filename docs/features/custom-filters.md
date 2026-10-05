@@ -1,37 +1,22 @@
-# Filtri personalizzati
+# Regole personalizzate
 
-Il preset `custom` valuta regole strutturate e limitate. Non supporta
-espressioni regolari né script arbitrari.
+Usa **Personalizzato** per assegnare un punteggio ai risultati o escluderli.
+
+1. Apri **Elaborazione risultati** e scegli **Personalizzato**.
+2. Premi **Aggiungi regola**.
+3. Scegli campo, operatore, valore e azione.
+4. Premi **Salva elaborazione risultati**.
 
 ## Campi delle regole
 
-| Campo      | Operatori                            |
-| ---------- | ------------------------------------ |
-| `title`    | `contains`, `not_contains`, `equals` |
-| `provider` | `contains`, `not_contains`, `equals` |
-| `size`     | `equals`, `gte`, `lte`               |
-| `seeders`  | `equals`, `gte`, `lte`               |
+- **Titolo** e **Provider**: contiene, non contiene, uguale a.
+- **Dimensione** e **Seeder**: uguale a, almeno, al massimo.
 
-Ogni regola contiene `enabled`, `field`, `operator`, `value` e `action`.
-`action` vale `score` o `exclude`; le regole di punteggio richiedono anche
-`score`.
+**Modifica punteggio** riordina i risultati; un valore maggiore li favorisce.
+**Escludi** li rimuove.
 
-## Semantica degli operatori
-
-| Tipo              | Comportamento                                                                                 |
-| ----------------- | --------------------------------------------------------------------------------------------- |
-| Testo             | Confronto Unicode case-folded; `contains` cerca una sottostringa, `equals` l'intero valore    |
-| Testo mancante    | Corrisponde a `not_contains`, non a `contains` o `equals`                                     |
-| Numero            | `equals`, `gte` e `lte` confrontano valori finiti; i booleani non sono numeri                 |
-| Numero non valido | Un valore nullo, mancante, booleano, NaN o infinito non corrisponde mai a una regola numerica |
-
-Limiti: massimo 100 regole; testo non vuoto fino a 512 caratteri; valori e
-punteggi numerici finiti e non booleani; valore assoluto del punteggio fino
-a 1000.
-
-Le regole disabilitate non hanno effetto. Una regola `exclude` corrispondente
-rimuove il risultato; gli altri sono ordinati per somma dei punteggi, mantenendo
-stabile l'ordine a parità.
+Le regole vengono eseguite in ordine. Quelle disabilitate restano salvate ma
+vengono ignorate.
 
 ::: danger Visibilità
 

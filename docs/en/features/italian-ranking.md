@@ -1,7 +1,7 @@
 # Italian ranking
 
-The `italian_preferred` preset promotes titles using token-aware markers without
-removing fallback results.
+Choose **Italian preferred** to promote titles with recognized markers without
+hiding alternatives.
 
 ## Ranking order
 
@@ -12,8 +12,9 @@ removing fallback results.
 Tokens are case-insensitive sequences of ASCII letters and digits. This avoids
 matching `ITA` inside unrelated words. Equal scores retain database order.
 
-`italian_only` is stricter: it keeps only `ITA`, `ITALIAN`, or `ITALIANO` token
-matches. `MULTI` and `DUAL` alone are ranking hints, not proof of Italian audio.
+**Italian only** is stricter: it keeps only `ITA`, `ITALIAN`, or `ITALIANO`
+token matches. `MULTI` and `DUAL` alone are ranking hints, not proof of Italian
+audio.
 
 ::: warning Scope
 
