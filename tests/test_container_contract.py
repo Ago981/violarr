@@ -2,7 +2,6 @@ import json
 import re
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DOCKERFILE = ROOT / "Dockerfile"
 ENTRYPOINT = ROOT / "entrypoint.sh"
@@ -112,10 +111,7 @@ def test_distribution_metadata_uses_violarr_public_identity():
     dockerfile = dockerfile_text()
 
     assert 'org.opencontainers.image.title="Violarr"' in dockerfile
-    assert (
-        'org.opencontainers.image.source="https://github.com/xbit18/violarr"'
-        in dockerfile
-    )
+    assert 'org.opencontainers.image.source="https://github.com/xbit18/violarr"' in dockerfile
 
     package_names = {
         "frontend": "violarr-webui",
@@ -123,9 +119,7 @@ def test_distribution_metadata_uses_violarr_public_identity():
     }
     for directory, expected_name in package_names.items():
         package = json.loads((ROOT / directory / "package.json").read_text(encoding="utf-8"))
-        lock = json.loads(
-            (ROOT / directory / "package-lock.json").read_text(encoding="utf-8")
-        )
+        lock = json.loads((ROOT / directory / "package-lock.json").read_text(encoding="utf-8"))
         assert package["name"] == expected_name
         assert lock["name"] == expected_name
         assert lock["packages"][""]["name"] == expected_name
@@ -135,9 +129,7 @@ def test_compose_uses_primary_image_and_preserves_operational_aliases():
     compose = COMPOSE.read_text(encoding="utf-8")
 
     assert re.search(r"(?m)^\s{2}icvdb-torznab:\s*$", compose)
-    assert re.search(
-        r"(?m)^\s{4}image:\s+ghcr\.io/xbit18/violarr:latest\s*$", compose
-    )
+    assert re.search(r"(?m)^\s{4}image:\s+ghcr\.io/xbit18/violarr:latest\s*$", compose)
     assert re.search(r"(?m)^\s{4}container_name:\s+icvdb-torznab\s*$", compose)
     assert re.search(r"(?m)^\s{6}-\s+icvdb_data:/data\s*$", compose)
     assert re.search(r"(?m)^\s{4}name:\s+icvdb_torznab_data\s*$", compose)
@@ -156,10 +148,7 @@ def test_release_publishes_only_primary_image_tags():
 def test_snapshot_repository_remains_a_separate_compatibility_contract():
     updater = SNAPSHOT_UPDATER.read_text(encoding="utf-8")
 
-    assert (
-        "https://api.github.com/repos/xbit18/icvdb-snapshots/releases/latest"
-        in updater
-    )
+    assert "https://api.github.com/repos/xbit18/icvdb-snapshots/releases/latest" in updater
 
 
 def test_stable_data_environment_and_route_identifiers_remain_unchanged():

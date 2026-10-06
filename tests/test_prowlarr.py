@@ -57,6 +57,10 @@ def generic_schema():
     }
 
 
+def app_profiles():
+    return [{"id": 1, "name": "Standard"}]
+
+
 def client(responses, *, max_response_bytes=1024 * 1024):
     opener = FakeOpener(responses)
     return (
@@ -133,7 +137,12 @@ def test_http_and_transport_errors_never_expose_api_key():
 
 def test_schema_is_deep_copied_and_named_fields_are_updated():
     schema = generic_schema()
-    subject, _ = client([Response([schema])])
+    subject, opener = client(
+        [
+            Response([schema]),
+            Response(app_profiles()),
+        ]
+    )
 
     resource = subject.build_indexer_resource()
 
@@ -147,6 +156,11 @@ def test_schema_is_deep_copied_and_named_fields_are_updated():
         "seedCriteria": {"seeders": 1},
     }
     assert schema["fields"][0]["value"] == ""
+
+    assert [request.full_url for request, _ in opener.requests] == [
+        "http://prowlarr:9696/api/v1/indexer/schema",
+        "http://prowlarr:9696/api/v1/appprofile",
+    ]
 
 
 def test_missing_generic_schema_or_required_fields_is_rejected():
@@ -168,29 +182,63 @@ def test_existing_indexer_is_detected_by_implementation_and_normalized_endpoint(
     existing = generic_schema()
     existing["name"] = "Renamed by user"
     existing["fields"][0]["value"] = "http://icvdb-torznab:8000/"
-    subject, opener = client([Response([generic_schema()]), Response([existing])])
 
-    result = subject.ensure_indexer()
-
-    assert result == {"created": False, "already_installed": True, "indexer_id": None}
-    assert len(opener.requests) == 2
-
-
-def test_create_tests_resource_before_posting_and_preserves_template_defaults():
     subject, opener = client(
-        [Response([generic_schema()]), Response([]), Response({}), Response({"id": 42})]
+        [
+            Response([generic_schema()]),
+            Response(app_profiles()),
+            Response([existing]),
+        ]
     )
 
     result = subject.ensure_indexer()
 
-    assert result == {"created": True, "already_installed": False, "indexer_id": 42}
-    assert [request.method for request, _ in opener.requests] == ["GET", "GET", "POST", "POST"]
-    assert [request.full_url for request, _ in opener.requests][-2:] == [
+    assert result == {
+        "created": False,
+        "already_installed": True,
+        "indexer_id": None,
+    }
+    assert len(opener.requests) == 3
+
+
+def test_create_tests_resource_before_posting_and_preserves_template_defaults():
+    subject, opener = client(
+        [
+            Response([generic_schema()]),
+            Response(app_profiles()),
+            Response([]),
+            Response({}),
+            Response({"id": 42}),
+        ]
+    )
+
+    result = subject.ensure_indexer()
+
+    assert result == {
+        "created": True,
+        "already_installed": False,
+        "indexer_id": 42,
+    }
+
+    assert [request.method for request, _ in opener.requests] == [
+        "GET",
+        "GET",
+        "GET",
+        "POST",
+        "POST",
+    ]
+
+    assert [request.full_url for request, _ in opener.requests] == [
+        "http://prowlarr:9696/api/v1/indexer/schema",
+        "http://prowlarr:9696/api/v1/appprofile",
+        "http://prowlarr:9696/api/v1/indexer",
         "http://prowlarr:9696/api/v1/indexer/test",
         "http://prowlarr:9696/api/v1/indexer",
     ]
+
     tested = json.loads(opener.requests[-2][0].data)
     created = json.loads(opener.requests[-1][0].data)
+
     assert tested == created
     assert created["appProfileId"] == 1
 

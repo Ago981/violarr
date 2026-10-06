@@ -2,7 +2,6 @@ import math
 import re
 from typing import Any, Iterable, Sequence
 
-
 PRESETS = {"unfiltered", "italian_preferred", "italian_only", "custom"}
 TEXT_FIELDS = {"title": 0, "provider": 3}
 NUMBER_FIELDS = {"size": 1, "seeders": 2}
@@ -86,9 +85,7 @@ def process_results(
     enabled = [rule for rule in rules if rule["enabled"]]
     excludes = [rule for rule in enabled if rule["action"] == "exclude"]
     scores = [rule for rule in enabled if rule["action"] == "score"]
-    included = [
-        row for row in materialized if not any(_matches(row, rule) for rule in excludes)
-    ]
+    included = [row for row in materialized if not any(_matches(row, rule) for rule in excludes)]
     return _stable_rank(
         included,
         lambda row: sum(rule["score"] for rule in scores if _matches(row, rule)),

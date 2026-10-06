@@ -102,18 +102,14 @@ def test_fallback_rejects_non_html_asset_like_and_unsafe_requests(tmp_path):
     assert response.headers["content-type"].startswith("application/json")
 
 
-def test_frontend_path_defaults_to_image_location_and_supports_override(
-    tmp_path, monkeypatch
-):
+def test_frontend_path_defaults_to_image_location_and_supports_override(tmp_path, monkeypatch):
     assert app_module.frontend_dist_path({}) == Path("/app/frontend-dist")
-    assert app_module.frontend_dist_path(
-        {"FRONTEND_DIST_DIR": "/tmp/custom-webui"}
-    ) == Path("/tmp/custom-webui")
+    assert app_module.frontend_dist_path({"FRONTEND_DIST_DIR": "/tmp/custom-webui"}) == Path(
+        "/tmp/custom-webui"
+    )
 
     dist = make_dist(tmp_path)
     monkeypatch.setenv("FRONTEND_DIST_DIR", str(dist))
     application = FastAPI()
     assert app_module.install_frontend(application) is True
-    assert TestClient(application).get(
-        "/", headers={"accept": "text/html"}
-    ).status_code == 200
+    assert TestClient(application).get("/", headers={"accept": "text/html"}).status_code == 200
