@@ -1,12 +1,17 @@
 # Environment variables
 
-Defaults are loaded first, persisted settings second, and runtime environment
-overrides last. Runtime overrides are effective without rewriting
-`/data/state/settings.json`.
+Violarr loads configuration in this order:
+
+1. application defaults;
+2. persisted settings saved through the WebUI;
+3. explicit runtime environment overrides.
+
+Environment variables therefore take precedence over persisted settings, but
+they are treated as overrides only when they are explicitly defined by the user.
 
 ## User-facing overrides
 
-| Variable                 | Default                        | Effect                                                               |
+| Variable                 | Application default            | Effect                                                               |
 | ------------------------ | ------------------------------ | -------------------------------------------------------------------- |
 | `DB_AUTO_UPDATE`         | `true`                         | Overrides automatic-update enabled state                             |
 | `DB_UPDATE_INTERVAL`     | `86400`                        | Overrides interval in seconds; valid range 60–604800                 |
@@ -19,6 +24,23 @@ overrides last. Runtime overrides are effective without rewriting
 | `SNAPSHOT_LATEST_URL`    | GitHub latest-release API      | Changes the snapshot release metadata source                         |
 | `SNAPSHOT_STATE_FILE`    | `/data/state/snapshot-version` | Changes the installed-version state path                             |
 | `ICVDB_SETTINGS_PATH`    | `/data/state/settings.json`    | Changes the settings path                                            |
+
+`DB_AUTO_UPDATE` and `DB_UPDATE_INTERVAL` normally do not need to be specified
+on the container. This allows values configured through the WebUI to be stored
+in `/data/state/settings.json` and applied immediately to the updater.
+
+When either variable is explicitly supplied, its value becomes a runtime
+override and takes precedence over the persisted configuration.
+
+For example:
+
+```yaml
+environment:
+  DB_UPDATE_INTERVAL: '3600'
+```
+
+forces a one-hour interval even if a different value is selected through the
+WebUI.
 
 ## Internal runtime variables
 
