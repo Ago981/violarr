@@ -34,10 +34,10 @@ def test_entrypoint_is_lf_only_and_keeps_bash_shebang():
     assert b"\r" not in content
 
 
-def test_final_stage_uses_clean_bookworm_runtime_and_pgdg_postgresql_16():
+def test_final_stage_uses_python_312_bookworm_runtime_and_pgdg_postgresql_16():
     stage = logical_instructions(final_stage())
 
-    assert re.search(r"(?im)^FROM\s+debian:bookworm-slim(?:\s|$)", stage)
+    assert re.search(r"(?im)^FROM\s+python:3\.12-slim-bookworm(?:\s|$)", stage)
     assert "apt.postgresql.org/pub/repos/apt" in stage
     assert re.search(r"\bpostgresql-16\b", stage)
     assert re.search(r"\bpostgresql-client-16\b", stage)
@@ -107,6 +107,23 @@ def test_runtime_defaults_keep_data_layout_without_baking_password():
     assert not re.search(r"(?im)^ENV\s+[^\n]*\bDB_PASSWORD=", stage)
 
 
+def test_database_update_settings_are_not_forced_as_runtime_overrides():
+    stage = logical_instructions(final_stage())
+    entrypoint = ENTRYPOINT.read_text(encoding="utf-8")
+    compose = COMPOSE.read_text(encoding="utf-8")
+
+    assert not re.search(r'\bDB_AUTO_UPDATE="?true"?', stage)
+    assert not re.search(r'\bDB_UPDATE_INTERVAL="?86400"?', stage)
+
+    assert 'DB_AUTO_UPDATE="${DB_AUTO_UPDATE:-true}"' not in entrypoint
+    assert 'DB_UPDATE_INTERVAL="${DB_UPDATE_INTERVAL:-86400}"' not in entrypoint
+
+    assert not re.search(r"(?m)^\s+DB_AUTO_UPDATE:", compose)
+    assert not re.search(r"(?m)^\s+DB_UPDATE_INTERVAL:", compose)
+
+    assert re.search(r'\bDB_UPDATE_START_DELAY="?60"?', stage)
+
+
 def test_distribution_metadata_uses_violarr_public_identity():
     dockerfile = dockerfile_text()
 
@@ -159,22 +176,25 @@ def test_stable_data_environment_and_route_identifiers_remain_unchanged():
 
     assert 'DEFAULT_SETTINGS_PATH = Path("/data/state/settings.json")' in settings
     assert '"schema_version": 1' in settings
+
     for name in (
         "DB_HOST",
         "DB_PORT",
         "DB_NAME",
         "DB_USER",
-        "DB_AUTO_UPDATE",
-        "DB_UPDATE_INTERVAL",
         "DB_UPDATE_START_DELAY",
     ):
         assert name in dockerfile
+
     for name in (
+        "DB_AUTO_UPDATE",
+        "DB_UPDATE_INTERVAL",
         "ICVDB_SETTINGS_PATH",
         "ICVDB_RESULT_PRESET",
         "ICVDB_PROWLARR_URL",
         "ICVDB_PROWLARR_API_KEY",
     ):
         assert name in settings
+
     assert '@app.get("/api")' in app
     assert 'APIRouter(prefix="/webapi"' in webapi
