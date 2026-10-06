@@ -25,8 +25,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DB_PORT="5432" \
     DB_NAME="icv_db" \
     DB_USER="icv" \
-    DB_AUTO_UPDATE="true" \
-    DB_UPDATE_INTERVAL="86400" \
     DB_UPDATE_START_DELAY="60" \
     SNAPSHOT_STATE_FILE="/data/state/snapshot-version"
 

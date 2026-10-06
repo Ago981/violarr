@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from prowlarr import ProwlarrError
 from settings import SettingsStore
+from snapshot_updater import SnapshotUpdater
 from version import APP_VERSION
 from webapi import create_webapi_router
 
@@ -66,12 +67,14 @@ def web_client(tmp_path):
         "api_key": "never-return-this",
     }
     store.save(settings)
+
     app = FastAPI(version=APP_VERSION)
     app.state.settings_store = store
     app.state.snapshot_updater = FakeUpdater()
     app.state.database_probe = lambda: True
     app.state.prowlarr_factory = lambda values: FakeProwlarr(values)
     app.include_router(create_webapi_router())
+
     return TestClient(app), app
 
 
@@ -84,7 +87,10 @@ def test_status_contains_stable_health_summary_without_secrets(web_client):
     assert response.json()["api_version"] == 1
     assert response.json()["application_version"] == APP_VERSION
     assert response.json()["database"]["connected"] is True
-    assert response.json()["result_processing"] == {"preset": "unfiltered", "custom_rule_count": 0}
+    assert response.json()["result_processing"] == {
+        "preset": "unfiltered",
+        "custom_rule_count": 0,
+    }
     assert response.json()["prowlarr"] == {
         "configured": True,
         "connected": None,
@@ -114,7 +120,9 @@ def test_status_reports_database_failure_without_calling_prowlarr(web_client):
 
 def test_get_and_put_settings_mask_secret_and_reconfigure_updater(web_client):
     client, app = web_client
+
     public = client.get("/webapi/settings").json()
+
     assert public["prowlarr"]["api_key_configured"] is True
     assert "api_key" not in public["prowlarr"]
 
@@ -127,19 +135,125 @@ def test_get_and_put_settings_mask_secret_and_reconfigure_updater(web_client):
     assert "never-return-this" not in response.text
 
 
+def test_database_update_settings_are_applied_to_real_runtime_updater(tmp_path):
+    store = SettingsStore(
+        path=tmp_path / "settings.json",
+        environ={},
+    )
+
+    updater = SnapshotUpdater(settings_store=store)
+
+    app = FastAPI(version=APP_VERSION)
+    app.state.settings_store = store
+    app.state.snapshot_updater = updater
+    app.state.database_probe = lambda: True
+    app.include_router(create_webapi_router())
+
+    client = TestClient(app)
+
+    assert updater.enabled is True
+    assert updater.interval == 86400
+
+    public = client.get("/webapi/settings").json()
+    public["database_update"] = {
+        "enabled": False,
+        "interval_seconds": 3600,
+    }
+
+    response = client.put("/webapi/settings", json=public)
+
+    assert response.status_code == 200
+    assert updater.enabled is False
+    assert updater.interval == 3600
+
+    persisted = store.load_persisted()
+    assert persisted["database_update"] == {
+        "enabled": False,
+        "interval_seconds": 3600,
+    }
+
+    public = client.get("/webapi/settings").json()
+    public["database_update"] = {
+        "enabled": True,
+        "interval_seconds": 7200,
+    }
+
+    response = client.put("/webapi/settings", json=public)
+
+    assert response.status_code == 200
+    assert updater.enabled is True
+    assert updater.interval == 7200
+
+    persisted = store.load_persisted()
+    assert persisted["database_update"] == {
+        "enabled": True,
+        "interval_seconds": 7200,
+    }
+
+
+def test_explicit_database_environment_override_still_wins_at_runtime(tmp_path):
+    store = SettingsStore(
+        path=tmp_path / "settings.json",
+        environ={
+            "DB_AUTO_UPDATE": "true",
+            "DB_UPDATE_INTERVAL": "7200",
+        },
+    )
+
+    updater = SnapshotUpdater(settings_store=store)
+
+    app = FastAPI(version=APP_VERSION)
+    app.state.settings_store = store
+    app.state.snapshot_updater = updater
+    app.state.database_probe = lambda: True
+    app.include_router(create_webapi_router())
+
+    client = TestClient(app)
+
+    public = client.get("/webapi/settings").json()
+
+    assert public["database_update"] == {
+        "enabled": True,
+        "interval_seconds": 7200,
+    }
+
+    public["database_update"] = {
+        "enabled": False,
+        "interval_seconds": 3600,
+    }
+
+    response = client.put("/webapi/settings", json=public)
+
+    assert response.status_code == 200
+
+    # Explicit runtime environment variables intentionally keep precedence.
+    assert updater.enabled is True
+    assert updater.interval == 7200
+
+    # The environment-owned values are not copied into persisted settings.
+    assert store.load_persisted()["database_update"] == {
+        "enabled": True,
+        "interval_seconds": 86400,
+    }
+
+
 def test_put_settings_returns_422_for_invalid_or_unknown_input(web_client):
     client, _ = web_client
+
     settings = client.get("/webapi/settings").json()
     settings["database_update"]["interval_seconds"] = 1
+
     assert client.put("/webapi/settings", json=settings).status_code == 422
 
     settings = client.get("/webapi/settings").json()
     settings["unknown"] = True
+
     assert client.put("/webapi/settings", json=settings).status_code == 422
 
 
 def test_result_processing_get_and_put_are_focused(web_client):
     client, _ = web_client
+
     assert client.get("/webapi/result-processing").json() == {
         "preset": "unfiltered",
         "custom_rules": [],
@@ -147,14 +261,22 @@ def test_result_processing_get_and_put_are_focused(web_client):
 
     response = client.put(
         "/webapi/result-processing",
-        json={"preset": "italian_preferred", "custom_rules": []},
+        json={
+            "preset": "italian_preferred",
+            "custom_rules": [],
+        },
     )
+
     assert response.status_code == 200
     assert response.json()["preset"] == "italian_preferred"
+
     assert (
         client.put(
             "/webapi/result-processing",
-            json={"preset": "unknown", "custom_rules": []},
+            json={
+                "preset": "unknown",
+                "custom_rules": [],
+            },
         ).status_code
         == 422
     )
@@ -162,36 +284,57 @@ def test_result_processing_get_and_put_are_focused(web_client):
 
 def test_prowlarr_status_test_and_idempotent_add(web_client):
     client, app = web_client
+
     assert client.get("/webapi/prowlarr/status").json()["connected"] is True
+
     assert client.get("/webapi/status").json()["prowlarr"] == {
         "configured": True,
         "connected": True,
         "indexer_installed": False,
         "error": None,
     }
-    assert client.post("/webapi/prowlarr/test").json() == {"connected": True, "error": None}
+
+    assert client.post("/webapi/prowlarr/test").json() == {
+        "connected": True,
+        "error": None,
+    }
+
     assert client.post("/webapi/prowlarr/indexer").json() == {
         "created": True,
         "already_installed": False,
         "indexer_id": 7,
     }
 
-    app.state.prowlarr_factory = lambda values: FakeProwlarr(values, existing=True)
+    app.state.prowlarr_factory = lambda values: FakeProwlarr(
+        values,
+        existing=True,
+    )
+
     assert client.post("/webapi/prowlarr/indexer").json()["already_installed"] is True
     assert client.get("/webapi/status").json()["prowlarr"]["indexer_installed"] is True
 
 
-def test_prowlarr_errors_are_400_when_unconfigured_and_502_when_remote_fails(web_client):
+def test_prowlarr_errors_are_400_when_unconfigured_and_502_when_remote_fails(
+    web_client,
+):
     client, app = web_client
+
     settings = app.state.settings_store.load_persisted()
     settings["prowlarr"]["url"] = ""
     app.state.settings_store.save(settings)
+
     assert client.post("/webapi/prowlarr/test").status_code == 400
 
     settings["prowlarr"]["url"] = "http://prowlarr:9696"
     app.state.settings_store.save(settings)
-    app.state.prowlarr_factory = lambda values: FakeProwlarr(values, fail=True)
+
+    app.state.prowlarr_factory = lambda values: FakeProwlarr(
+        values,
+        fail=True,
+    )
+
     response = client.post("/webapi/prowlarr/indexer")
+
     assert response.status_code == 502
     assert "never-return-this" not in response.text
 
@@ -210,6 +353,8 @@ def test_prowlarr_error_body_removes_secret_and_traceback_text(web_client):
     response = client.post("/webapi/prowlarr/test")
 
     assert response.status_code == 502
-    assert response.json() == {"detail": "Prowlarr request failed"}
+    assert response.json() == {
+        "detail": "Prowlarr request failed",
+    }
     assert "never-return-this" not in response.text
     assert "Traceback" not in response.text
