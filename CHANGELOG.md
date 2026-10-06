@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.3](https://github.com/xbit18/violarr/compare/v1.1.2...v1.1.3) (2026-10-06)
+
+
+### Bug Fixes
+
+* apply database update settings from WebUI ([f4f2f57](https://github.com/xbit18/violarr/commit/f4f2f570d8625edc20fa8a578027618c3edd5d5e))
+* apply database update settings from WebUI ([d2403a0](https://github.com/xbit18/violarr/commit/d2403a0505f7539c0ee25e1d6a73ea31ea0496d6))
+
 ## v1.1.2 - 2026-10-05
 ### Added
 - support for arm64 image
