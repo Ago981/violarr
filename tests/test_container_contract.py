@@ -159,7 +159,18 @@ def test_release_publishes_only_primary_image_tags():
     assert "${{ env.REGISTRY }}/${{ env.PRIMARY_IMAGE_NAME }}" in workflow
     assert "LEGACY_IMAGE_NAME" not in workflow
     assert "xbit18/icvdb-torznab" not in workflow
-    assert "tags: ${{ steps.meta.outputs.tags }}" in workflow
+
+    assert "workflow_dispatch:" in workflow
+    assert "ref: ${{ steps.release-tag.outputs.tag }}" in workflow
+
+    assert "META_TAGS: ${{ steps.meta.outputs.tags }}" in workflow
+    assert "META_LABELS: ${{ steps.meta.outputs.labels }}" in workflow
+    assert 'tags: "${{ steps.meta_patched.outputs.tags }}"' in workflow
+    assert 'labels: "${{ steps.meta_patched.outputs.labels }}"' in workflow
+
+    assert "action: docker/build-push-action@v6" in workflow
+    assert "attempt_limit: 3" in workflow
+    assert "attempt_delay: 15000" in workflow
 
 
 def test_snapshot_repository_remains_a_separate_compatibility_contract():
