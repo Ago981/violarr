@@ -9,7 +9,7 @@ COPY frontend/ ./
 RUN npm run build
 
 
-FROM debian:bookworm-slim
+FROM python:3.12-slim-bookworm
 
 LABEL org.opencontainers.image.title="Violarr"
 LABEL org.opencontainers.image.source="https://github.com/xbit18/violarr"
@@ -50,8 +50,6 @@ RUN apt-get update \
         locales \
         postgresql-16 \
         postgresql-client-16 \
-        python3 \
-        python3-venv \
         tini \
     && echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen \
     && locale-gen en_US.UTF-8 \
@@ -61,7 +59,7 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY requirements.txt .
-RUN python3 -m venv /opt/venv \
+RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
 COPY VERSION app.py snapshot_updater.py settings.py result_processor.py prowlarr.py version.py webapi.py entrypoint.sh ./
