@@ -4,6 +4,13 @@ on:
   release:
     types: [published]
 
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag to publish
+        required: true
+        type: string
+
 env:
   REGISTRY: ghcr.io
   PRIMARY_IMAGE_NAME: xbit18/violarr
@@ -19,6 +26,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Resolve release tag
+        id: release-tag
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -39,8 +56,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.PRIMARY_IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}},value=${{ steps.release-tag.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.release-tag.outputs.tag }}
             type=raw,value=latest
 
       - name: Build and push image
