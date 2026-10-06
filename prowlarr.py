@@ -1,11 +1,10 @@
-from copy import deepcopy
 import json
 import socket
+from copy import deepcopy
 from typing import Any, Callable
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
 from urllib.request import Request, urlopen
-
 
 DEFAULT_TIMEOUT = 10.0
 DEFAULT_MAX_RESPONSE_BYTES = 1024 * 1024
@@ -88,9 +87,7 @@ class ProwlarrClient:
         max_response_bytes: int | None = None,
     ) -> Any:
         effective_max_response_bytes = (
-            self.max_response_bytes
-            if max_response_bytes is None
-            else max_response_bytes
+            self.max_response_bytes if max_response_bytes is None else max_response_bytes
         )
         body = None
         headers = {
@@ -165,9 +162,7 @@ class ProwlarrClient:
         fields = resource.get("fields")
 
         if not isinstance(fields, list):
-            raise ProwlarrError(
-                "Prowlarr Generic Torznab schema has invalid fields"
-            )
+            raise ProwlarrError("Prowlarr Generic Torznab schema has invalid fields")
 
         found = set()
 
@@ -180,9 +175,7 @@ class ProwlarrClient:
 
         if missing:
             missing_name = sorted(missing)[0]
-            raise ProwlarrError(
-                f"Prowlarr Generic Torznab schema is missing {missing_name}"
-            )
+            raise ProwlarrError(f"Prowlarr Generic Torznab schema is missing {missing_name}")
 
         resource["name"] = "Violarr"
         resource["appProfileId"] = self._default_app_profile_id()
@@ -251,15 +244,10 @@ class ProwlarrClient:
     def _app_profiles(self) -> list[dict[str, Any]]:
         payload = self._request("GET", "/api/v1/appprofile")
 
-        if not isinstance(payload, list) or not all(
-            isinstance(item, dict) for item in payload
-        ):
-            raise ProwlarrError(
-                "Prowlarr returned an invalid app profile response"
-            )
+        if not isinstance(payload, list) or not all(isinstance(item, dict) for item in payload):
+            raise ProwlarrError("Prowlarr returned an invalid app profile response")
 
         return payload
-
 
     def _default_app_profile_id(self) -> int:
         profiles = self._app_profiles()
@@ -267,13 +255,7 @@ class ProwlarrClient:
         for profile in profiles:
             profile_id = profile.get("id")
 
-            if (
-                isinstance(profile_id, int)
-                and not isinstance(profile_id, bool)
-                and profile_id > 0
-            ):
+            if isinstance(profile_id, int) and not isinstance(profile_id, bool) and profile_id > 0:
                 return profile_id
 
-        raise ProwlarrError(
-            "Prowlarr has no valid app profile configured"
-        )
+        raise ProwlarrError("Prowlarr has no valid app profile configured")

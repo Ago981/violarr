@@ -1,14 +1,13 @@
-from copy import deepcopy
 import json
 import os
-from pathlib import Path
 import tempfile
 import threading
+from copy import deepcopy
+from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import urlsplit
 
 from result_processor import PRESETS, ResultProcessingError, validate_rules
-
 
 DEFAULT_SETTINGS_PATH = Path("/data/state/settings.json")
 SUPPORTED_ENVIRONMENT_OVERRIDES = {
@@ -138,23 +137,17 @@ class SettingsStore:
             # A GET/PUT round trip must not copy effective environment values
             # into the persisted layer. Environment-owned fields stay untouched.
             if "DB_AUTO_UPDATE" in self.environ:
-                candidate["database_update"]["enabled"] = persisted[
-                    "database_update"
-                ]["enabled"]
+                candidate["database_update"]["enabled"] = persisted["database_update"]["enabled"]
             if "DB_UPDATE_INTERVAL" in self.environ:
-                candidate["database_update"]["interval_seconds"] = persisted[
-                    "database_update"
-                ]["interval_seconds"]
+                candidate["database_update"]["interval_seconds"] = persisted["database_update"][
+                    "interval_seconds"
+                ]
             if "ICVDB_RESULT_PRESET" in self.environ:
-                candidate["result_processing"]["preset"] = persisted[
-                    "result_processing"
-                ]["preset"]
+                candidate["result_processing"]["preset"] = persisted["result_processing"]["preset"]
             if "ICVDB_PROWLARR_URL" in self.environ:
                 candidate_prowlarr["url"] = persisted["prowlarr"]["url"]
             if "PROWLARR_INDEXER_URL" in self.environ:
-                candidate_prowlarr["indexer_url"] = persisted["prowlarr"][
-                    "indexer_url"
-                ]
+                candidate_prowlarr["indexer_url"] = persisted["prowlarr"]["indexer_url"]
             self.save(candidate)
         return self.public()
 
@@ -180,21 +173,15 @@ class SettingsStore:
                 self.environ["DB_UPDATE_INTERVAL"],
             )
         if "ICVDB_RESULT_PRESET" in self.environ:
-            effective["result_processing"]["preset"] = self.environ[
-                "ICVDB_RESULT_PRESET"
-            ]
+            effective["result_processing"]["preset"] = self.environ["ICVDB_RESULT_PRESET"]
         if "ICVDB_PROWLARR_URL" in self.environ:
             effective["prowlarr"]["url"] = self.environ["ICVDB_PROWLARR_URL"]
         if "ICVDB_PROWLARR_API_KEY" in self.environ:
-            effective["prowlarr"]["api_key"] = self.environ[
-                "ICVDB_PROWLARR_API_KEY"
-            ]
+            effective["prowlarr"]["api_key"] = self.environ["ICVDB_PROWLARR_API_KEY"]
         if "PROWLARR_API_KEY" in self.environ:
             effective["prowlarr"]["api_key"] = self.environ["PROWLARR_API_KEY"]
         if "PROWLARR_INDEXER_URL" in self.environ:
-            effective["prowlarr"]["indexer_url"] = self.environ[
-                "PROWLARR_INDEXER_URL"
-            ]
+            effective["prowlarr"]["indexer_url"] = self.environ["PROWLARR_INDEXER_URL"]
         return effective
 
 

@@ -1,22 +1,24 @@
 import os
 from collections.abc import Mapping
 from pathlib import Path
-from snapshot_updater import install_snapshot_updater
-from fastapi import FastAPI, HTTPException, Query, Request, Response
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-import psycopg
-from result_processor import process_results
-from settings import SettingsStore
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from version import APP_VERSION
-from webapi import create_webapi_router
 from xml.etree.ElementTree import (
     Element,
     SubElement,
-    tostring,
     register_namespace,
+    tostring,
 )
+
+import psycopg
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from result_processor import process_results
+from settings import SettingsStore
+from snapshot_updater import install_snapshot_updater
+from version import APP_VERSION
+from webapi import create_webapi_router
 
 SETTINGS_STORE = SettingsStore()
 app = FastAPI(version=APP_VERSION)
@@ -102,9 +104,7 @@ def install_frontend(
 
     async def frontend_response(frontend_path: str, request: Request):
         first_segment = frontend_path.split("/", 1)[0]
-        if first_segment in _FRONTEND_RESERVED_PREFIXES or not _safe_frontend_path(
-            frontend_path
-        ):
+        if first_segment in _FRONTEND_RESERVED_PREFIXES or not _safe_frontend_path(frontend_path):
             raise HTTPException(status_code=404)
 
         if not frontend_path and _accepts_html(request):
@@ -170,7 +170,6 @@ def query_generic(
 ):
     with get_conn() as conn:
         with conn.cursor() as cur:
-
             if not q:
                 cur.execute(
                     """
@@ -230,7 +229,6 @@ def query_movie(
 ):
     with get_conn() as conn:
         with conn.cursor() as cur:
-
             if imdb_id:
                 cur.execute(
                     """
@@ -322,17 +320,12 @@ def query_tv(
 ):
     with get_conn() as conn:
         with conn.cursor() as cur:
-
             #
             # 1. Episodio preciso:
             #
             # imdbid + season + episode
             #
-            if (
-                imdb_id is not None
-                and season is not None
-                and episode is not None
-            ):
+            if imdb_id is not None and season is not None and episode is not None:
                 cur.execute(
                     """
                     SELECT
@@ -368,10 +361,7 @@ def query_tv(
             #
             # imdbid + season
             #
-            if (
-                imdb_id is not None
-                and season is not None
-            ):
+            if imdb_id is not None and season is not None:
                 season_sxx = f"S{season:02d}"
                 season_word = f"Season {season}"
 
@@ -419,10 +409,7 @@ def query_tv(
             #
             # q + season
             #
-            if (
-                q is not None
-                and season is not None
-            ):
+            if q is not None and season is not None:
                 season_sxx = f"S{season:02d}"
                 season_word = f"Season {season}"
 
@@ -678,13 +665,9 @@ def make_rss(rows):
             torrent_type,
         ) = row
 
-        category = category_for_type(
-            torrent_type
-        )
+        category = category_for_type(torrent_type)
 
-        magnet = (
-            f"magnet:?xt=urn:btih:{info_hash}"
-        )
+        magnet = f"magnet:?xt=urn:btih:{info_hash}"
 
         item = SubElement(
             channel,
@@ -717,9 +700,7 @@ def make_rss(rows):
             SubElement(
                 item,
                 "pubDate",
-            ).text = upload_date.strftime(
-                "%a, %d %b %Y %H:%M:%S +0000"
-            )
+            ).text = upload_date.strftime("%a, %d %b %Y %H:%M:%S +0000")
 
         enclosure = SubElement(
             item,
@@ -825,9 +806,7 @@ def query_processed(query, query_args, limit, offset):
     # crosses a boundary; ranking intentionally remains local to each window.
     request_end = offset + limit
     first_window = (offset // RESULT_CANDIDATE_WINDOW) * RESULT_CANDIDATE_WINDOW
-    last_window = (
-        (request_end - 1) // RESULT_CANDIDATE_WINDOW
-    ) * RESULT_CANDIDATE_WINDOW
+    last_window = ((request_end - 1) // RESULT_CANDIDATE_WINDOW) * RESULT_CANDIDATE_WINDOW
     page = []
     for window_offset in range(
         first_window,
@@ -873,9 +852,7 @@ def torznab(
             media_type="application/xml",
         )
 
-    imdb_id = normalize_imdb(
-        imdbid
-    )
+    imdb_id = normalize_imdb(imdbid)
 
     if t == "search":
         rows = query_processed(

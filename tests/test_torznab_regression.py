@@ -1,7 +1,7 @@
 from xml.etree import ElementTree
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 import app as app_module
 from settings import SettingsStore
@@ -47,14 +47,26 @@ def test_rss_channel_uses_violarr_branding(client, monkeypatch):
 @pytest.mark.parametrize(
     ("params", "query_name", "expected_args"),
     [
-        ({"t": "search", "q": "avatar", "limit": 20, "offset": 4}, "query_generic", ("avatar", 20, 4)),
+        (
+            {"t": "search", "q": "avatar", "limit": 20, "offset": 4},
+            "query_generic",
+            ("avatar", 20, 4),
+        ),
         (
             {"t": "movie", "q": "avatar", "imdbid": "123", "tmdbid": 10, "limit": 20, "offset": 4},
             "query_movie",
             ("tt123", 10, "avatar", 20, 4),
         ),
         (
-            {"t": "tvsearch", "q": "show", "imdbid": "tt456", "season": 2, "ep": 3, "limit": 20, "offset": 4},
+            {
+                "t": "tvsearch",
+                "q": "show",
+                "imdbid": "tt456",
+                "season": 2,
+                "ep": 3,
+                "limit": 20,
+                "offset": 4,
+            },
             "query_tv",
             ("tt456", "show", 2, 3, 20, 4),
         ),
@@ -204,6 +216,4 @@ def test_filtered_pagination_fetches_the_window_for_large_offsets(client, monkey
 
     root = ElementTree.fromstring(response.content)
     assert calls == [(None, app_module.RESULT_CANDIDATE_WINDOW, 1000)]
-    assert [item.findtext("title") for item in root.findall("channel/item")] == [
-        "Movie.ITA.1000"
-    ]
+    assert [item.findtext("title") for item in root.findall("channel/item")] == ["Movie.ITA.1000"]

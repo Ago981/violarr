@@ -1,11 +1,10 @@
-from typing import Any
 import threading
+from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException, Request
 
 from prowlarr import ProwlarrClient, ProwlarrError
 from settings import SettingsError
-
 
 WEBAPI_VERSION = 1
 _UNCHANGED = object()
@@ -23,9 +22,7 @@ class _ProwlarrStateCache:
             return {
                 "configured": configured,
                 "connected": self._connected if configured else None,
-                "indexer_installed": (
-                    self._indexer_installed if configured else None
-                ),
+                "indexer_installed": (self._indexer_installed if configured else None),
                 "error": self._error if configured else None,
             }
 
@@ -67,8 +64,10 @@ def _prowlarr_client(request: Request, *, require_indexer: bool = False):
     if not all(required):
         raise HTTPException(status_code=400, detail="Prowlarr is not configured")
     factory = getattr(request.app.state, "prowlarr_factory", ProwlarrClient)
-    return factory(settings) if factory is not ProwlarrClient else factory(
-        settings["url"], settings["api_key"], settings["indexer_url"]
+    return (
+        factory(settings)
+        if factory is not ProwlarrClient
+        else factory(settings["url"], settings["api_key"], settings["indexer_url"])
     )
 
 
@@ -179,25 +178,19 @@ def create_webapi_router() -> APIRouter:
             raise
         except ProwlarrError:
             prowlarr_cache.update(connected=False, error=_safe_prowlarr_error())
-            raise HTTPException(
-                status_code=502, detail=_safe_prowlarr_error()
-            ) from None
+            raise HTTPException(status_code=502, detail=_safe_prowlarr_error()) from None
         prowlarr_cache.update(connected=True, error=None)
         return {"connected": True, "error": None}
 
     @router.post("/prowlarr/indexer")
     def add_prowlarr_indexer(request: Request):
         try:
-            result = _prowlarr_client(
-                request, require_indexer=True
-            ).ensure_indexer()
+            result = _prowlarr_client(request, require_indexer=True).ensure_indexer()
         except HTTPException:
             raise
         except ProwlarrError:
             prowlarr_cache.update(connected=False, error=_safe_prowlarr_error())
-            raise HTTPException(
-                status_code=502, detail=_safe_prowlarr_error()
-            ) from None
+            raise HTTPException(status_code=502, detail=_safe_prowlarr_error()) from None
         prowlarr_cache.update(
             connected=True,
             indexer_installed=True,

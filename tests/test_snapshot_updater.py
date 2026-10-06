@@ -2,12 +2,12 @@ import asyncio
 import hashlib
 import io
 import json
-from datetime import datetime, timezone
 import threading
+from datetime import datetime, timezone
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-import pytest
 
 from settings import SettingsStore
 from snapshot_updater import Snapshot, SnapshotUpdater, install_snapshot_updater
@@ -256,9 +256,7 @@ def test_maintenance_middleware_returns_stable_503(tmp_path):
     assert TestClient(app).get("/probe").json() == {"ok": True}
 
 
-def test_candidate_switch_rolls_back_after_new_database_validation_failure(
-    tmp_path, monkeypatch
-):
+def test_candidate_switch_rolls_back_after_new_database_validation_failure(tmp_path, monkeypatch):
     updater = SnapshotUpdater(settings_store=make_store(tmp_path))
     updater.db_name = "icv_db"
     calls = []
@@ -278,8 +276,9 @@ def test_candidate_switch_rolls_back_after_new_database_validation_failure(
     monkeypatch.setattr(
         updater,
         "_database_exists",
-        lambda connection, name: name
-        == ("icv_db" if connection.phase == "switch" else "icv_db_previous"),
+        lambda connection, name: (
+            name == ("icv_db" if connection.phase == "switch" else "icv_db_previous")
+        ),
     )
     monkeypatch.setattr(
         updater,
@@ -289,9 +288,7 @@ def test_candidate_switch_rolls_back_after_new_database_validation_failure(
     monkeypatch.setattr(
         updater,
         "_rename_database",
-        lambda connection, old, new: calls.append(
-            (connection.phase, "rename", old, new)
-        ),
+        lambda connection, old, new: calls.append((connection.phase, "rename", old, new)),
     )
     monkeypatch.setattr(
         updater,
