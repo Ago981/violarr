@@ -18,6 +18,10 @@ jobs:
     name: Backend
     runs-on: ubuntu-latest
 
+    env:
+      ICVDB_SETTINGS_PATH: /tmp/violarr-ci/settings.json
+      SNAPSHOT_STATE_FILE: /tmp/violarr-ci/snapshot-version
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
