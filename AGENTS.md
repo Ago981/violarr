@@ -2,386 +2,571 @@
 
 ## Project overview
 
-Violarr is a lightweight bridge between a local ICVDB PostgreSQL database and Torznab-compatible clients such as Prowlarr. Its public repository is `xbit18/violarr`, and its primary image is `ghcr.io/xbit18/violarr`.
+Violarr is a self-hosted Torznab indexer for ICVDB.
 
-The application:
+It exposes the ICVDB PostgreSQL dataset to Torznab-compatible clients such as Prowlarr and provides a Vue WebUI for configuration, result processing, database updates, and Prowlarr integration.
 
-1. receives Torznab API requests;
-2. queries the local PostgreSQL database containing an ICVDB snapshot;
-3. converts database records into Torznab-compatible XML;
-4. returns the result to the client.
+Public repository:
 
-The project does not scrape websites, download torrents, manage media libraries, or maintain the upstream ICVDB database.
+```text
+xbit18/violarr
+```
 
-## Tech stack
+Published Docker image:
+
+```text
+ghcr.io/xbit18/violarr
+```
+
+Violarr does not scrape torrent websites, download torrents, manage media libraries, or maintain the upstream ICVDB database.
+
+## Runtime architecture
+
+Violarr is intentionally a **single-container application**.
+
+The container includes:
+
+- FastAPI;
+- the compiled Vue WebUI;
+- PostgreSQL 16;
+- the ICVDB database;
+- the automatic snapshot updater.
+
+Runtime topology:
+
+```text
+┌─────────────────────────────────────────────┐
+│ Violarr container                           │
+│                                             │
+│ :8000 FastAPI                               │
+│   ├── /         Vue WebUI                   │
+│   ├── /webapi   JSON API                    │
+│   └── /api      Torznab XML API             │
+│                    │                        │
+│ PostgreSQL 16 ◄────┘                        │
+│ 127.0.0.1:5432 only                         │
+│                                             │
+│ /data                                       │
+│   ├── postgres/                             │
+│   └── state/                                │
+│       ├── settings.json                     │
+│       └── snapshot-version                  │
+└─────────────────────────────────────────────┘
+```
+
+Only port `8000` is published.
+
+PostgreSQL is internal to the container and must not normally be exposed.
+
+There is no separate PostgreSQL Compose service, Redis instance, Docker socket, or settings database.
+
+## Main technologies
+
+Backend:
 
 - Python 3.12
 - FastAPI
-- psycopg 3
 - Uvicorn
+- psycopg 3
 - PostgreSQL 16
-- Docker / Docker Compose
 
-The project is intentionally small. Most application logic currently lives in `app.py`.
+Frontend:
 
-## Public identity and compatibility
+- Vue 3
+- TypeScript
+- Vite
+- Vue Router
+- Vitest
+- ESLint
+- Prettier
 
-Use **Violarr** for public product naming and `ghcr.io/xbit18/violarr` as the published image.
+Documentation:
 
-The following legacy technical identifiers are intentional compatibility contracts and must not be renamed during branding work:
+- VitePress
 
-- Compose service and container alias `icvdb-torznab`;
-- named volume `icvdb_torznab_data` and container path `/data`;
-- settings path `/data/state/settings.json` and schema version 1;
-- `ICVDB_*` and `DB_*` environment variables;
-- `/api` and `/webapi` routes;
-- snapshot repository `xbit18/icvdb-snapshots`.
+Infrastructure:
+
+- Docker
+- Docker Compose
+- GitHub Actions
+- Release Please
+- GHCR
 
 ## Important files
 
-- `app.py` — API, search logic, database queries and Torznab XML generation
-- `Dockerfile` — application container
-- `docker-compose.yml` — PostgreSQL + Torznab service deployment
-- `.env.example` — supported configuration variables
-- `requirements.txt` — Python dependencies
-- `README.md` — user-facing installation and usage documentation
-- `ARCHITECTURE.md` — architecture and protocol notes
-- `AGENTS.md` — instructions for coding agents working on this repository
+### Backend
 
-## Configuration
+- `app.py` — FastAPI lifecycle, Torznab endpoints, database queries, XML generation, static frontend serving
+- `webapi.py` — WebUI JSON API
+- `settings.py` — settings validation, persistence, environment overrides, secret masking
+- `result_processor.py` — result filtering and ranking
+- `prowlarr.py` — Prowlarr API integration
+- `snapshot_updater.py` — snapshot discovery, download, validation, restore, switch, rollback
+- `version.py` — application version handling
+- `entrypoint.sh` — PostgreSQL bootstrap and application startup
 
-The Docker Compose deployment uses:
+### Frontend
 
-```text
-DB_NAME
-DB_USER
-DB_PASSWORD
-```
+- `frontend/` — Vue WebUI source
+- `frontend/src/` — application code
+- `frontend/package.json` — frontend scripts and dependencies
 
-Inside the Violarr container, database connectivity is configured as:
+### Documentation
 
-```text
-DB_HOST=db
-DB_PORT=5432
-DB_NAME=${DB_NAME}
-DB_USER=${DB_USER}
-DB_PASSWORD=${DB_PASSWORD}
-```
+- `README.md` / `README.en.md` — project landing documentation
+- `ARCHITECTURE.md` — detailed architecture and runtime behavior
+- `docs/` — VitePress documentation site
 
-`app.py` also supports database configuration through:
+### Infrastructure
 
-```text
-DB_HOST
-DB_PORT
-DB_NAME
-DB_USER
-DB_PASSWORD
-```
+- `Dockerfile` — production image
+- `docker-compose.yml` — default deployment
+- `requirements.txt` — Python runtime dependencies
+- `requirements-dev.txt` — Python development dependencies
+- `.github/workflows/ci.yml` — validation pipeline
+- `.github/workflows/release-please.yml` — automated release management
+- `.github/workflows/publish-image.yml` — multi-architecture GHCR publishing
+- `release-please-config.json` — Release Please configuration
+- `.release-please-manifest.json` — current released version
+- `.githooks/` — local Git hooks
+- `ruff.toml` — Python lint/format configuration
+- `commitlint.config.mjs` — Conventional Commit rules
 
-Never hard-code:
+## Compatibility contracts
 
-- passwords
-- API keys
-- tokens
-- private IP addresses
-- machine-specific paths
-- other secrets
+Use **Violarr** for public naming.
 
-Never commit `.env`.
+The following legacy technical identifiers are intentional compatibility contracts and must not be renamed casually:
 
-## Running the project
+- container/service name `icvdb-torznab`;
+- Docker volume `icvdb_torznab_data`;
+- persistent mount `/data`;
+- PostgreSQL data path `/data/postgres`;
+- state path `/data/state`;
+- settings path `/data/state/settings.json`;
+- snapshot state file `/data/state/snapshot-version`;
+- settings schema version 1;
+- existing `ICVDB_*` and `DB_*` environment variables;
+- `/api` Torznab endpoint;
+- `/webapi` WebUI API;
+- snapshot repository `xbit18/icvdb-snapshots`.
 
-Create the local configuration:
+Backward compatibility with existing volumes and installations is important.
 
-```bash
-cp .env.example .env
-```
+Do not rename or remove compatibility identifiers as part of unrelated cleanup or branding changes.
 
-Start PostgreSQL:
+## Torznab API
 
-```bash
-docker compose up -d db
-```
-
-Start or rebuild the complete stack:
-
-```bash
-docker compose up -d --build
-```
-
-View logs:
-
-```bash
-docker compose logs -f
-```
-
-Stop the stack:
-
-```bash
-docker compose down
-```
-
-Do not use `docker compose down -v` unless destroying the local PostgreSQL database is explicitly intended.
-
-## Database snapshot
-
-The repository does not contain the ICVDB database itself.
-
-Database snapshots are distributed separately through GitHub Releases because the dump is too large to store directly in the Git repository.
-
-The currently documented snapshot is:
-
-```text
-Tag: db-2026-08-21
-File: icvdb-2026-08-21.dump
-Format: PostgreSQL custom dump
-```
-
-The dump is restored into the PostgreSQL service managed by `docker-compose.yml`.
-
-The persistent PostgreSQL data is stored in the Docker volume:
-
-```text
-icvdb_data
-```
-
-The database should generally be treated as read-only by the Torznab service.
-
-## Restoring a snapshot
-
-After starting the database service, a snapshot can be restored with:
-
-```bash
-docker compose exec -T db \
-  sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-privileges' \
-  < db/icvdb-2026-08-21.dump
-```
-
-Do not automatically drop, recreate or overwrite an existing user database unless that behavior has been explicitly requested.
-
-Database replacement and snapshot updates must be designed carefully to avoid unnecessary downtime or accidental data loss.
-
-## Basic verification
-
-After making changes, always verify:
-
-```bash
-curl 'http://localhost:8000/api?t=caps'
-```
-
-Expected:
-
-- HTTP 200
-- valid XML
-- root element `<caps>`
-- advertised capabilities consistent with the implementation
-
-The capabilities endpoint alone does not verify PostgreSQL connectivity.
-
-Also perform at least one real search:
-
-```bash
-curl -s 'http://localhost:8000/api?t=search&q=avatar'
-```
-
-When changing movie or TV search logic, test the relevant endpoint as well.
-
-Examples:
-
-```text
-/api?t=search&q=example
-/api?t=movie&q=example
-/api?t=tvsearch&q=example
-```
-
-## Torznab compatibility
-
-The main API endpoint is:
+The main Torznab endpoint is:
 
 ```text
 /api
 ```
 
-Currently supported operations include:
+Supported operations include:
 
 - `t=caps`
 - `t=search`
 - `t=movie`
 - `t=tvsearch`
 
-Current categories:
+Important categories include:
 
 - `2000` — Movies
 - `5000` — TV
 - `5070` — TV / Anime
 
-When changing the API:
+When modifying the API:
 
 - preserve Torznab compatibility;
-- preserve existing query parameters when possible;
 - prioritize compatibility with Prowlarr;
-- keep `/api?t=caps` synchronized with actual implemented features;
-- do not advertise capabilities that are not implemented.
+- keep `/api?t=caps` synchronized with implemented behavior;
+- preserve existing parameters unless a breaking change is explicitly intended;
+- do not advertise unsupported capabilities.
+
+Torznab XML must be generated using `xml.etree.ElementTree`.
+
+Do not manually concatenate untrusted values into XML strings.
 
 ## Database rules
 
 Treat the ICVDB schema as an external data model.
 
-Prefer read-only SQL.
+Prefer read-only queries.
 
-Do not modify the ICVDB schema or introduce application-specific migrations unless explicitly requested.
+Do not modify the upstream schema or introduce application-specific database migrations unless explicitly required.
 
-All HTTP-provided values used in SQL must use psycopg parameter binding.
+All HTTP-derived SQL values must use psycopg parameter binding.
 
-Never construct SQL by concatenating untrusted request values.
+Never build SQL by concatenating untrusted request values.
 
-Keep ICVDB-specific schema assumptions easy to locate and understand.
+PostgreSQL should remain bound to the container loopback interface unless there is a concrete reason to change that boundary.
 
-## XML generation
+## Snapshot updater
 
-Torznab responses must remain valid XML.
+Violarr automatically manages ICVDB snapshots.
 
-Use the existing `xml.etree.ElementTree` based implementation rather than constructing XML manually through string concatenation.
+The updater:
 
-Database values and user-controlled input must be escaped correctly.
+1. checks the configured GitHub release source;
+2. discovers the current `.dump` asset;
+3. verifies its SHA256 digest;
+4. validates the dump with `pg_restore --list`;
+5. restores it into a candidate database;
+6. validates the candidate;
+7. switches databases;
+8. validates the new active database;
+9. rolls back when required;
+10. records the installed snapshot version.
+
+The active database should remain available during download and restore.
+
+Maintenance mode should be limited to the database switch and final validation.
+
+Do not replace or destroy the active database before the candidate has been validated.
+
+Do not remove `/data` or the application volume during ordinary upgrades.
+
+## Settings
+
+Persistent settings live in:
+
+```text
+/data/state/settings.json
+```
+
+Effective configuration precedence is:
+
+```text
+built-in defaults < persisted settings < runtime environment
+```
+
+Environment variables are overrides, not automatically persisted WebUI values.
+
+Secrets such as Prowlarr API keys must never be returned by public settings endpoints.
+
+Do not log, expose, or commit secrets.
+
+## Result processing
+
+Violarr supports result-processing presets and custom filtering/ranking rules.
+
+The processing pipeline may:
+
+- exclude results;
+- score results;
+- reorder results.
+
+It affects only the results returned by Violarr.
+
+It cannot guarantee how Prowlarr, Radarr, Sonarr, or another downstream application ultimately chooses a release.
+
+When modifying result processing:
+
+- preserve stable ordering for equal scores;
+- keep rules bounded and deterministic;
+- do not introduce arbitrary scripts or executable expressions;
+- maintain predictable pagination behavior.
+
+## Prowlarr integration
+
+Violarr can configure itself as a Generic Torznab indexer in Prowlarr.
+
+The integration:
+
+- authenticates with `X-Api-Key`;
+- reads Prowlarr's Generic Torznab schema;
+- creates a Violarr resource from that schema;
+- uses the configured app profile;
+- tests the resource before creation;
+- detects an already configured equivalent indexer;
+- avoids duplicating equivalent indexers.
+
+Do not hard-code Prowlarr schema defaults when they can be derived from the current Prowlarr schema response.
+
+Remember that `localhost` inside the Violarr container refers to the container itself, not the Docker host.
 
 ## Security
 
-Treat every HTTP query parameter as untrusted.
+Treat all HTTP input as untrusted.
 
-Do not expose:
+Never expose:
 
-- database credentials;
-- internal connection details;
-- secrets;
-- stack traces containing sensitive information.
+- passwords;
+- API keys;
+- tokens;
+- private machine paths;
+- stack traces containing secrets;
+- internal credentials.
 
-Secrets must come from configuration/environment variables.
+The WebUI, WebAPI, and Torznab API currently do not provide their own authentication.
 
-PostgreSQL should remain internal to the Docker Compose network unless there is a concrete reason to expose it.
+Deployment on port `8000` should therefore be limited to a trusted network or placed behind an authenticated reverse proxy.
 
-## Design principles
+Stored settings are not encrypted, so access to the `/data` volume must be protected.
 
-Keep the project simple.
+## Local development
+
+Python development uses Python 3.12.
+
+Recommended setup on Windows:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt -r requirements-dev.txt
+```
+
+Frontend dependencies:
+
+```bash
+npm --prefix frontend ci
+```
+
+Documentation dependencies:
+
+```bash
+npm --prefix docs ci
+```
+
+Root Node dependencies are used for Commitlint:
+
+```bash
+npm ci
+```
+
+## Git hooks
+
+Versioned hooks live in:
+
+```text
+.githooks/
+```
+
+Enable them locally with:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The pre-commit hook automatically:
+
+- runs Ruff fixes and formatting on staged Python files;
+- runs ESLint fixes on staged frontend source files;
+- runs Prettier on staged frontend files;
+- runs Prettier on staged documentation files;
+- re-stages modified files.
+
+The commit-msg hook validates commit messages with Commitlint.
+
+A fresh clone does **not** automatically enable `core.hooksPath`; the command above must be run once.
+
+## Commit convention
+
+Use Conventional Commits.
+
+Examples:
+
+```text
+feat: add result ranking preset
+fix: correct Prowlarr app profile handling
+docs: update installation guide
+test: cover snapshot rollback
+refactor: simplify settings normalization
+ci: update release workflow
+chore: update tooling
+```
+
+Important release semantics:
+
+- `fix:` → patch release;
+- `feat:` → minor release;
+- breaking changes → major release.
+
+Use Conventional Commit titles when squash-merging feature/fix PRs.
+
+Merge commits such as `Merge pull request ...` may appear in history; Release Please ignores commits it cannot parse.
+
+## Branch and release workflow
+
+Normal development flow:
+
+```text
+feature/fix branch
+        ↓
+develop
+        ↓
+develop → main
+        ↓
+Release Please
+        ↓
+Release PR
+        ↓
+GitHub Release
+        ↓
+multi-arch Docker image on GHCR
+```
+
+Feature and fix work should normally branch from `develop` and merge back into `develop`.
+
+`main` represents released or release-ready code.
+
+Release Please runs on `main`.
+
+Do not manually edit the version during normal development unless a specific release override is required.
+
+The current version is tracked through:
+
+- `VERSION`;
+- `.release-please-manifest.json`;
+- Release Please.
+
+When Release Please creates a GitHub Release, the reusable Docker publication workflow publishes:
+
+- the full semantic version;
+- the major/minor tag;
+- `latest`.
+
+The image is built for:
+
+```text
+linux/amd64
+linux/arm64
+```
+
+## Validation before finishing a change
+
+Run the checks relevant to the files changed.
+
+### Backend
+
+```bash
+python -m ruff check .
+python -m ruff format --check .
+python -m pytest -q
+```
+
+### Frontend
+
+```bash
+npm --prefix frontend run lint
+npm --prefix frontend run format:check
+npm --prefix frontend run typecheck
+npm --prefix frontend test -- --run
+npm --prefix frontend run build
+```
+
+### Documentation
+
+```bash
+npm --prefix docs run format:check
+npm --prefix docs run docs:build
+```
+
+### Docker
+
+For changes affecting the image or runtime:
+
+```bash
+docker build .
+```
+
+When practical, also verify:
+
+```bash
+curl 'http://localhost:8000/api?t=caps'
+```
+
+and at least one real database-backed search:
+
+```bash
+curl -s 'http://localhost:8000/api?t=search&q=avatar'
+```
+
+Do not treat `/api?t=caps` alone as proof that PostgreSQL is working.
+
+## CI
+
+GitHub Actions validates pushes and pull requests for `main` and `develop`.
+
+The CI pipeline checks:
+
+### Backend
+
+- Ruff lint
+- Ruff formatting
+- pytest
+
+### Frontend
+
+- ESLint
+- Prettier
+- TypeScript
+- Vitest
+- production build
+
+### Documentation
+
+- Prettier
+- VitePress build
+
+### Docker
+
+- production image build
+
+Do not weaken CI checks simply to make a failing change pass.
+
+Fix the underlying code, tests, formatting, or configuration instead.
+
+## Documentation rules
+
+Update documentation when behavior changes.
+
+Use:
+
+- `README.md` / `README.en.md` for top-level user-facing behavior;
+- `docs/` for detailed installation and usage documentation;
+- `ARCHITECTURE.md` for runtime architecture, security boundaries, compatibility contracts, snapshot behavior, and protocol details.
+
+Keep documentation aligned with actual implementation.
+
+Do not document planned behavior as if it already exists.
+
+## General implementation principles
 
 Prefer:
 
-- small functions;
 - explicit behavior;
+- small focused functions;
 - minimal dependencies;
-- centralized normalization logic;
+- deterministic processing;
+- centralized normalization;
 - parameterized SQL;
-- stateless request handling.
+- atomic persistent writes;
+- backward compatibility.
 
-Avoid unnecessary abstractions or frameworks.
+Avoid:
 
-The application should remain a thin adapter:
+- unnecessary abstraction;
+- speculative frameworks;
+- duplicated logic;
+- hidden side effects;
+- unrelated refactors inside bug fixes;
+- changing established compatibility identifiers without a migration plan.
 
-```text
-Torznab request
-      ↓
-input normalization
-      ↓
-ICVDB query
-      ↓
-result mapping
-      ↓
-Torznab XML
-```
+When fixing a bug, prefer the smallest change that solves the underlying problem and add or update tests covering it.
 
-## Project scope
+## Before finishing
 
-Appropriate features include:
+Confirm that:
 
-- improved Torznab compatibility;
-- additional Torznab parameters;
-- improved ICVDB metadata mapping;
-- better error handling;
-- logging;
-- tests;
-- health checks;
-- Docker/deployment improvements;
-- safer snapshot restoration;
-- automated database snapshot retrieval and updating.
-
-Out of scope unless explicitly requested:
-
-- torrent downloading;
-- media management;
-- torrent website scraping;
-- replacing Prowlarr;
-- maintaining the upstream ICVDB database.
-
-## Database snapshot distribution
-
-The current project already supports self-hosting using a manually downloaded database snapshot.
-
-Current flow:
-
-```text
-GitHub Release
-      ↓
-download PostgreSQL dump
-      ↓
-restore into local PostgreSQL
-      ↓
-Violarr
-      ↓
-Prowlarr
-```
-
-A future goal is automated snapshot discovery and updating.
-
-The intended future model is:
-
-```text
-ICVDB database
-      ↓
-periodic pg_dump
-      ↓
-static storage
-      ├── latest.json
-      └── versioned database dump
-              ↓
-        self-hosted instances
-```
-
-A possible manifest format:
-
-```json
-{
-  "version": "2026-10-08",
-  "url": "https://example.org/icvdb/icvdb-2026-10-08.dump",
-  "sha256": "..."
-}
-```
-
-A self-hosted instance could periodically check the manifest and download a new dump only when `version` changes.
-
-Automatic snapshot discovery and updating are not implemented yet.
-
-Do not assume that a stable manifest URL exists unless it has actually been added to the project.
-
-## Documentation
-
-When changing user-visible behavior, update `README.md`.
-
-When changing architecture, database assumptions, Torznab mappings or snapshot/update behavior, update `ARCHITECTURE.md`.
-
-Keep examples generic.
-
-Never put local credentials, private IP addresses or machine-specific configuration into documentation.
-
-## Before finishing a change
-
-Verify that:
-
-1. the Docker image builds;
-2. PostgreSQL starts successfully;
-3. the Torznab service starts successfully;
-4. `/api?t=caps` returns valid XML;
-5. at least one real search reaches PostgreSQL successfully;
-6. affected search endpoints behave correctly;
-7. no credentials or local-only configuration were committed;
-8. database dumps were not accidentally committed;
-9. documentation reflects user-visible changes.
+1. relevant automated tests pass;
+2. formatting and linting pass;
+3. frontend type checking passes when applicable;
+4. the Docker image still builds when runtime code changes;
+5. no secrets or local-only configuration were committed;
+6. no database dump was accidentally committed;
+7. existing `/data` volumes remain compatible unless a breaking migration was explicitly intended;
+8. Torznab capabilities match the implementation;
+9. user-facing documentation reflects user-visible changes;
+10. architecture documentation reflects architectural changes.
