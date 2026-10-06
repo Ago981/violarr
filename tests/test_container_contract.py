@@ -34,10 +34,10 @@ def test_entrypoint_is_lf_only_and_keeps_bash_shebang():
     assert b"\r" not in content
 
 
-def test_final_stage_uses_clean_bookworm_runtime_and_pgdg_postgresql_16():
+def test_final_stage_uses_python_312_bookworm_runtime_and_pgdg_postgresql_16():
     stage = logical_instructions(final_stage())
 
-    assert re.search(r"(?im)^FROM\s+debian:bookworm-slim(?:\s|$)", stage)
+    assert re.search(r"(?im)^FROM\s+python:3\.12-slim-bookworm(?:\s|$)", stage)
     assert "apt.postgresql.org/pub/repos/apt" in stage
     assert re.search(r"\bpostgresql-16\b", stage)
     assert re.search(r"\bpostgresql-client-16\b", stage)
