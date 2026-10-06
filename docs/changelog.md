@@ -1,14 +1,17 @@
 # Changelog
 
 ## v1.1.2 - 2026-10-05
+
 ### Aggiunte
+
 - supporto per immagini arm64
-  
+
 ## v1.1.1 — 2026-10-05
 
 v1.1.1 risolve:
- - payload limiter troppo piccolo per Prowlarr
- - bug nel flow per aggiungere Violarr a Prowlarr
+
+- payload limiter troppo piccolo per Prowlarr
+- bug nel flow per aggiungere Violarr a Prowlarr
 
 Per i dettagli di compatibilità e la cronologia completa consulta
 [`CHANGELOG.md`](https://github.com/xbit18/violarr/blob/main/CHANGELOG.md).

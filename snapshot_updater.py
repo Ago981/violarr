@@ -11,12 +11,13 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 import psycopg
-from fastapi import FastAPI, Request as FastAPIRequest
+from fastapi import FastAPI
+from fastapi import Request as FastAPIRequest
 from fastapi.responses import JSONResponse
 from psycopg import sql
+
 from settings import SettingsStore
 from version import APP_VERSION
-
 
 LATEST_RELEASE_URL = os.getenv(
     "SNAPSHOT_LATEST_URL",
@@ -65,9 +66,7 @@ class SnapshotUpdater:
         self.db_password = os.getenv("DB_PASSWORD", "icv_internal")
         self.admin_db = os.getenv("DB_ADMIN_DB", "postgres")
 
-        self.state_file = Path(
-            os.getenv("SNAPSHOT_STATE_FILE", "/data/state/snapshot-version")
-        )
+        self.state_file = Path(os.getenv("SNAPSHOT_STATE_FILE", "/data/state/snapshot-version"))
 
         self.maintenance = threading.Event()
         self._update_lock = threading.Lock()
@@ -169,23 +168,17 @@ class SnapshotUpdater:
             release = json.load(response)
 
         dump_assets = [
-            asset
-            for asset in release.get("assets", [])
-            if asset.get("name", "").endswith(".dump")
+            asset for asset in release.get("assets", []) if asset.get("name", "").endswith(".dump")
         ]
 
         if not dump_assets:
-            raise RuntimeError(
-                "La latest release non contiene alcun asset .dump"
-            )
+            raise RuntimeError("La latest release non contiene alcun asset .dump")
 
         asset = dump_assets[0]
         digest = asset.get("digest")
 
         if not digest or not digest.startswith("sha256:"):
-            raise RuntimeError(
-                "L'asset dello snapshot non espone un digest SHA256 valido"
-            )
+            raise RuntimeError("L'asset dello snapshot non espone un digest SHA256 valido")
 
         return Snapshot(
             version=release["tag_name"],
@@ -322,11 +315,7 @@ class SnapshotUpdater:
 
         self._terminate_connections(connection, name)
 
-        connection.execute(
-            sql.SQL("DROP DATABASE {}").format(
-                sql.Identifier(name)
-            )
-        )
+        connection.execute(sql.SQL("DROP DATABASE {}").format(sql.Identifier(name)))
 
     def _rename_database(
         self,
@@ -385,9 +374,7 @@ class SnapshotUpdater:
         )
 
     def _validate_database(self, name: str) -> None:
-        with psycopg.connect(
-            **self._connection_kwargs(name)
-        ) as connection:
+        with psycopg.connect(**self._connection_kwargs(name)) as connection:
             connection.execute("SELECT 1").fetchone()
 
             table_count = connection.execute(
@@ -406,13 +393,9 @@ class SnapshotUpdater:
             ).fetchone()[0]
 
             if table_count == 0:
-                raise RuntimeError(
-                    f"Il database {name} non contiene tabelle utente"
-                )
+                raise RuntimeError(f"Il database {name} non contiene tabelle utente")
 
-        self._log(
-            f"Database {name} validato ({table_count} tabelle utente)."
-        )
+        self._log(f"Database {name} validato ({table_count} tabelle utente).")
 
     # ------------------------------------------------------------------
     # Switch sicuro
@@ -450,10 +433,7 @@ class SnapshotUpdater:
                 self._validate_database(self.db_name)
 
             except Exception:
-                self._log(
-                    "Validazione del nuovo database fallita. "
-                    "Avvio rollback..."
-                )
+                self._log("Validazione del nuovo database fallita. Avvio rollback...")
 
                 with self._admin_connection() as connection:
                     self._drop_database(
@@ -475,9 +455,7 @@ class SnapshotUpdater:
             with self._admin_connection() as connection:
                 self._drop_database(connection, previous)
 
-            self._log(
-                f"Database aggiornato con successo a {snapshot_version}."
-            )
+            self._log(f"Database aggiornato con successo a {snapshot_version}.")
 
         finally:
             self.maintenance.clear()
@@ -507,20 +485,14 @@ class SnapshotUpdater:
                 self._latest_version = latest.version
                 self._last_error = None
 
-            self._log(
-                f"Versione locale: {local or 'non registrata'}"
-            )
-            self._log(
-                f"Latest disponibile: {latest.version}"
-            )
+            self._log(f"Versione locale: {local or 'non registrata'}")
+            self._log(f"Latest disponibile: {latest.version}")
 
             if not self._needs_update(local, latest.version):
                 self._log("Database già aggiornato.")
                 return
 
-            self._log(
-                f"Nuovo snapshot disponibile: {latest.version}"
-            )
+            self._log(f"Nuovo snapshot disponibile: {latest.version}")
 
             dump_path = self.download_snapshot(latest)
 
@@ -547,8 +519,7 @@ class SnapshotUpdater:
                     )
             except Exception as cleanup_error:
                 self._log(
-                    "Unable to remove the temporary database "
-                    f"({type(cleanup_error).__name__})."
+                    f"Unable to remove the temporary database ({type(cleanup_error).__name__})."
                 )
 
         finally:
@@ -594,13 +565,8 @@ class SnapshotUpdater:
             self._task = asyncio.create_task(self._update_loop(wake_event))
         self._refresh_configuration()
         if self.enabled:
-            self._set_next_check(
-                self._now() + timedelta(seconds=max(self.start_delay, 0))
-            )
-            self._log(
-                "Automatic updates enabled "
-                f"(interval: {self.interval}s)."
-            )
+            self._set_next_check(self._now() + timedelta(seconds=max(self.start_delay, 0)))
+            self._log(f"Automatic updates enabled (interval: {self.interval}s).")
         else:
             self._log("Automatic updates disabled.")
 
@@ -638,9 +604,7 @@ def install_snapshot_updater(
         if updater.maintenance.is_set():
             return JSONResponse(
                 status_code=503,
-                content={
-                    "detail": "Database update in progress"
-                },
+                content={"detail": "Database update in progress"},
                 headers={"Retry-After": "5"},
             )
 
@@ -657,4 +621,3 @@ def install_snapshot_updater(
     app.state.snapshot_updater = updater
 
     return updater
-

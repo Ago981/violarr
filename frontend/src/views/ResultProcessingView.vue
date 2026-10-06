@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, watch } from 'vue'
-import type {
-  CustomRule,
-  Preset,
-  ResultProcessing,
-  RuleAction,
-  RuleField,
-  RuleOperator,
-} from '../api/types'
+import type { CustomRule, Preset, ResultProcessing, RuleField, RuleOperator } from '../api/types'
 import { useAppStore } from '../composables/appStore'
 import ToggleSwitch from '../components/ToggleSwitch.vue'
 import { useLocale } from '../i18n'

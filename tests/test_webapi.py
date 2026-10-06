@@ -1,9 +1,6 @@
-from copy import deepcopy
-import json
-
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-import pytest
 
 from prowlarr import ProwlarrError
 from settings import SettingsStore
@@ -154,10 +151,13 @@ def test_result_processing_get_and_put_are_focused(web_client):
     )
     assert response.status_code == 200
     assert response.json()["preset"] == "italian_preferred"
-    assert client.put(
-        "/webapi/result-processing",
-        json={"preset": "unknown", "custom_rules": []},
-    ).status_code == 422
+    assert (
+        client.put(
+            "/webapi/result-processing",
+            json={"preset": "unknown", "custom_rules": []},
+        ).status_code
+        == 422
+    )
 
 
 def test_prowlarr_status_test_and_idempotent_add(web_client):
