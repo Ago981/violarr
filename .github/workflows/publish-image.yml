@@ -44,12 +44,17 @@ jobs:
             type=raw,value=latest
 
       - name: Build and push image
-        uses: docker/build-push-action@v6
+        uses: Wandalen/wretry.action@v3.8.0
         with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          action: docker/build-push-action@v6
+          attempt_limit: 3
+          attempt_delay: 15000
+          steps_context: ${{ toJSON(steps) }}
+          with: |
+            context: .
+            platforms: linux/amd64,linux/arm64
+            push: true
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}
+            cache-from: type=gha
+            cache-to: type=gha,mode=max
