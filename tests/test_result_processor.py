@@ -68,7 +68,11 @@ def test_custom_excludes_before_scoring_and_preserves_ties():
 
 
 def test_custom_scores_change_order_with_stable_ties():
-    rows = [row("first", provider="plain"), row("second", provider="fav"), row("third", provider="fav")]
+    rows = [
+        row("first", provider="plain"),
+        row("second", provider="fav"),
+        row("third", provider="fav"),
+    ]
     rules = [rule("provider", "equals", "fav", "score", score=10)]
 
     result = process_results(rows, "custom", rules)

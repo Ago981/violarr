@@ -3,8 +3,8 @@ layout: home
 
 hero:
   image:
-      src: /logo.png
-      alt: Violarr logo
+    src: /logo.png
+    alt: Violarr logo
   name: Violarr
   text: Usa il database ICVDB direttamente con Prowlarr
   tagline: Avvia Violarr, apri la WebUI e collega Prowlarr in pochi passaggi.

@@ -46,7 +46,7 @@ if [ -n "$FRONTEND_FILES" ]; then
     relative="${file#frontend/}"
 
     case "$file" in
-      *.js|*.jsx|*.ts|*.tsx|*.vue)
+      *.js|*.mjs|*.cjs|*.jsx|*.ts|*.mts|*.cts|*.tsx|*.vue)
         echo "Linting $file"
         (
           cd frontend
@@ -56,7 +56,7 @@ if [ -n "$FRONTEND_FILES" ]; then
     esac
 
     case "$file" in
-      *.js|*.jsx|*.ts|*.tsx|*.vue|*.json|*.css|*.scss|*.md|*.yaml|*.yml)
+      *.js|*.mjs|*.cjs|*.jsx|*.ts|*.mts|*.cts|*.tsx|*.vue|*.json|*.css|*.scss|*.md|*.yaml|*.yml)
         echo "Formatting $file"
         (
           cd frontend
@@ -81,16 +81,15 @@ if [ -n "$DOCS_FILES" ]; then
   fi
 
   printf "%s\n" "$DOCS_FILES" | while IFS= read -r file; do
-    case "$file" in
-      *.js|*.jsx|*.ts|*.tsx|*.vue|*.json|*.css|*.scss|*.md|*.yaml|*.yml)
-        relative="${file#docs/}"
+    relative="${file#docs/}"
 
+    case "$file" in
+      *.js|*.mjs|*.cjs|*.jsx|*.ts|*.mts|*.cts|*.tsx|*.vue|*.json|*.css|*.scss|*.md|*.yaml|*.yml)
         echo "Formatting $file"
         (
           cd docs
           npx --no-install prettier --write "$relative"
         )
-
         git add "$file"
         ;;
     esac
